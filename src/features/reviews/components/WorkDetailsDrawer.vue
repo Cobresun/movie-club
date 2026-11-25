@@ -4,8 +4,8 @@
     <v-bottom-sheet v-if="!isDesktop" transparent-handle @close="close">
       <template #default="{ closing }">
         <WorkDetailsContent
-          :key="movie.id"
-          :movie="movie"
+          :key="work.id"
+          :work="work"
           :members="members"
           :delete-review="deleteReview"
           :revealed-movie-ids="revealedMovieIds"
@@ -25,8 +25,8 @@
     <VSideDrawer v-if="isDesktop" @close="close">
       <template #default="{ closing }">
         <WorkDetailsContent
-          :key="movie.id"
-          :movie="movie"
+          :key="work.id"
+          :work="work"
           :members="members"
           :delete-review="deleteReview"
           :revealed-movie-ids="revealedMovieIds"
@@ -54,7 +54,7 @@ import VSideDrawer from "@/common/components/VSideDrawer.vue";
 import { useIsDesktop } from "@/common/composables/useIsDesktop.js";
 
 defineProps<{
-  movie: DetailedReviewListItem;
+  work: DetailedReviewListItem;
   members: Member[];
   deleteReview: (workId: string) => void;
   revealedMovieIds: Set<string>;

@@ -9,6 +9,7 @@ import {
   type NextWorkResponse,
   type ReviewScores,
 } from "../../../../lib/types/lists";
+import { type TMDBWatchProvidersResponse } from "../../../../lib/types/tmdb";
 import { type TMDBTvEpisodeData } from "../../../../lib/types/tv";
 import ReviewView from "../views/ReviewView.vue";
 import club from "@/mocks/data/club";
@@ -414,6 +415,38 @@ describe("TV reviews", () => {
       await screen.findByRole("heading", { name: /^Severance: Half Loop/, level: 2 }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /edit score/i })).toBeInTheDocument();
+  });
+
+  it("shows where an episode's show streams in its details", async () => {
+    server.use(
+      http.get(`https://api.themoviedb.org/3/tv/${SHOW_ID}/watch/providers`, () =>
+        HttpResponse.json<TMDBWatchProvidersResponse>({
+          id: Number(SHOW_ID),
+          results: {
+            US: {
+              link: `https://www.themoviedb.org/tv/${SHOW_ID}/watch?locale=US`,
+              flatrate: [
+                {
+                  provider_id: 350,
+                  provider_name: "Apple TV Plus",
+                  logo_path: "/atv.jpg",
+                  display_priority: 1,
+                },
+              ],
+            },
+          },
+        }),
+      ),
+    );
+    const { user } = await renderSeverance();
+
+    await user.click(screen.getByRole("button", { name: "Half Loop" }));
+
+    expect(await screen.findByRole("img", { name: "Apple TV Plus" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Apple TV Plus" })).toHaveAttribute(
+      "href",
+      `https://www.themoviedb.org/tv/${SHOW_ID}/watch?locale=US`,
+    );
   });
 
   it("dates a scored episode by its first score, with nothing to change", async () => {

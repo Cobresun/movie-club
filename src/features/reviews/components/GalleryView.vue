@@ -103,7 +103,7 @@
     <WorkDetailsDrawer
       v-if="selectedMovie"
       :key="selectedMovie.id"
-      :movie="selectedMovie"
+      :work="selectedMovie"
       :members="members"
       :delete-review="deleteReview"
       :revealed-movie-ids="revealedMovieIds"
