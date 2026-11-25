@@ -5,12 +5,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/vue-query";
-import { computed, unref, type MaybeRef } from "vue";
+import { computed, type MaybeRef, type MaybeRefOrGetter, toValue, unref } from "vue";
 import { useToast } from "vue-toastification";
 
 import { hasValue, isDefined } from "../../lib/checks/checks.js";
 import { type ClubPreview } from "../../lib/types/club";
 import {
+  type CastNamesByExternalId,
   type ClubListSummary,
   type DetailedReviewListItem,
   type DetailedWorkData,
@@ -43,6 +44,9 @@ export const workDetailsKey = (clubSlug: string, workId: string) =>
 const allUserListItemsKey = (clubSlug: string) => ["lists", clubSlug, "all-items"] as const;
 
 const nextWorkKey = (clubSlug: string) => ["nextWork", clubSlug] as const;
+
+// Its own prefix: list mutations that add or remove no work leave it alone.
+const castNamesKey = (clubSlug: string) => ["castNames", clubSlug] as const;
 
 /**
  * Puts a work at the top of the reviews page (newest first, as the server
@@ -187,6 +191,7 @@ export function useDeleteList(clubSlug: string) {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: castNamesKey(clubSlug) }),
       ]),
   });
 }
@@ -216,6 +221,24 @@ export function useAllUserListItems(
     queryKey: allUserListItemsKey(clubSlug),
     queryFn: async () =>
       (await http.get<UserListItemWithSource[]>(`/api/club/${clubSlug}/list/all-items`)).data,
+  });
+}
+
+/**
+ * Cast names for every work on the club's lists, keyed by external id. Bulk
+ * list payloads leave them out, so the cast filter searches this instead.
+ * `enabled` lets a club type whose payloads already carry the names skip it.
+ */
+export function useCastNames(
+  clubSlug: MaybeRefOrGetter<string>,
+  enabled: () => boolean,
+): UseQueryReturnType<CastNamesByExternalId, HttpError> {
+  return useQuery({
+    queryKey: computed(() => castNamesKey(toValue(clubSlug))),
+    queryFn: async () =>
+      (await http.get<CastNamesByExternalId>(`/api/club/${toValue(clubSlug)}/list/cast-names`))
+        .data,
+    enabled,
   });
 }
 
@@ -333,7 +356,11 @@ export function useAddToReviewsList(clubSlug: string) {
     // The prompt that started this has closed by the time a failure comes back.
     onError: (_error, { insertDto }) =>
       toast.error(`Failed to add "${insertDto.title}". Please try again.`),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: castNamesKey(clubSlug) }),
+      ]),
   });
 }
 
@@ -353,6 +380,7 @@ export function useDeleteReview(clubSlug: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: reviewsListKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: memberScoresKey }),
+        queryClient.invalidateQueries({ queryKey: castNamesKey(clubSlug) }),
       ]);
     },
   });
@@ -403,6 +431,7 @@ export function useAddListItem(clubSlug: string, listId: string) {
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: recommendationsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: castNamesKey(clubSlug) }),
       ]);
     },
   });
@@ -426,6 +455,7 @@ export function useDeleteListItem(clubSlug: string, listId: string) {
         queryClient.invalidateQueries({ queryKey: listKey(clubSlug, listId) }),
         queryClient.invalidateQueries({ queryKey: clubListsKey(clubSlug) }),
         queryClient.invalidateQueries({ queryKey: nextWorkKey(clubSlug) }),
+        queryClient.invalidateQueries({ queryKey: castNamesKey(clubSlug) }),
       ]);
     },
   });

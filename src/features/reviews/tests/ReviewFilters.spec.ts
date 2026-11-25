@@ -143,6 +143,34 @@ describe("Review filters", () => {
     expect(screen.getByRole("button", { name: "Filters" })).toBeInTheDocument();
   });
 
+  it("offers the cast, loaded apart from the reviews, and narrows by an actor", async () => {
+    server.use(
+      http.get("/api/club/:id/list/reviews", () =>
+        HttpResponse.json(
+          REVIEWS.map((review) => ({ ...review, externalId: `tmdb-${review.id}` })),
+        ),
+      ),
+      http.get("/api/club/:id/list/cast-names", () =>
+        HttpResponse.json({
+          "tmdb-3": ["Daniel Kaluuya", "Allison Williams"],
+          "tmdb-4": ["Daniel Kaluuya", "Keke Palmer"],
+        }),
+      ),
+    );
+    const { user, panel } = await openFilters();
+
+    expect(await panel.findByRole("heading", { name: "Cast" })).toBeInTheDocument();
+    await user.click(panel.getByRole("button", { name: /^Keke Palmer/ }));
+
+    expect(shownTitles()).toStrictEqual(["Nope"]);
+  });
+
+  it("leaves the cast out while the club has no cast names", async () => {
+    const { panel } = await openFilters();
+
+    expect(panel.queryByRole("heading", { name: "Cast" })).not.toBeInTheDocument();
+  });
+
   it("picks a decade in one tap", async () => {
     const { user, panel } = await openFilters();
 

@@ -187,6 +187,18 @@ class ListRepository {
       .executeTakeFirst();
   }
 
+  /** Every distinct work on any of the club's lists, the reviews list included. */
+  async getClubWorks(clubId: string) {
+    return db
+      .selectFrom("work_list_item")
+      .innerJoin("work_list", "work_list.id", "work_list_item.list_id")
+      .innerJoin("work", "work.id", "work_list_item.work_id")
+      .where("work_list.club_id", "=", clubId)
+      .select(["work.external_id", "work.type"])
+      .distinct()
+      .execute();
+  }
+
   /** Whether `workId` is on the list, either itself or through its parent. */
   async isOnList(listId: string, workId: string) {
     return isDefined(

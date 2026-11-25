@@ -92,8 +92,8 @@ export interface MediaProvider {
 
   /**
    * Like {@link getExternalData} but returns the bulk-payload summary shape,
-   * omitting heavyweight fields (movie cast lists). List/review endpoints use
-   * this so response size doesn't scale with cast sizes.
+   * omitting heavyweight fields (movie cast lists and long-form text).
+   * List/review endpoints use this so response size doesn't scale with them.
    */
   getExternalDataSummary: (externalIds: string[]) => Promise<Map<string, WorkDataSummary>>;
 
@@ -103,6 +103,13 @@ export interface MediaProvider {
    * an empty map. Serves the statistics leaderboards' bulk cast fetch.
    */
   getCast: (externalIds: string[]) => Promise<Map<string, CastMember[]>>;
+
+  /**
+   * Billed-order cast names for a set of external IDs, keyed by external ID —
+   * what the cast filter searches. Only for media whose summary leaves the
+   * names out.
+   */
+  readonly getCastNames?: (externalIds: string[]) => Promise<Map<string, string[]>>;
 
   /**
    * Re-fetch the `limit` works whose cached details are stalest (oldest

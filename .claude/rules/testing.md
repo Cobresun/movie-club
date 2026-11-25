@@ -77,4 +77,4 @@ Gotchas:
 - `resetDatabase()` clears domain tables between tests; a new table fails type-check there until it is listed. Auth tables survive and fixture users are reused.
 - CockroachDB v25+ is required (`COCKROACH_TEST_IMAGE` overrides).
 - An unexpected 500 is usually `executeTakeFirstOrThrow` on a missing row.
-- `MovieDataSummary` has no `title`. Assert on `tagline` or `overview`.
+- `MovieDataSummary` has no `title`, `overview` or `tagline`. Assert on `runtime` or `status`, or read the per-work details endpoint.

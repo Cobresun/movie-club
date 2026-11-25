@@ -20,9 +20,11 @@ import { type MediaProvider, numOrUndefined, type RefreshResult } from "./types"
 
 /**
  * Builds the `movie_details` + junction aggregates for a set of external IDs,
- * excluding the cast (see {@link castQuery}). Cast lists dominate row size, so
+ * leaving out the cast and the long-form text. Those dominate row size, so
  * keeping them out of this query keeps bulk list/review responses small and
  * avoids shipping megabytes from the database on every list load.
+ *
+ * A movie cached without an overview is treated as not cached at all.
  */
 function summaryQuery(externalIds: string[]) {
   return db
@@ -71,7 +73,6 @@ function summaryQuery(externalIds: string[]) {
         .selectFrom("movie_actors")
         .select((eb) => [
           "external_id",
-          eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
           // Major cast only (top-billed OR a popularity star), filtered in the
           // DB so the payload still ships names only — see lib/movie/majorCast.
           eb.fn
@@ -92,6 +93,8 @@ function summaryQuery(externalIds: string[]) {
     )
     .selectFrom("movie_details")
     .where("movie_details.external_id", "in", externalIds)
+    .where("movie_details.overview", "is not", null)
+    .where("movie_details.overview", "!=", "")
     .leftJoin("genres_agg", "genres_agg.external_id", "movie_details.external_id")
     .leftJoin("companies_agg", "companies_agg.external_id", "movie_details.external_id")
     .leftJoin("countries_agg", "countries_agg.external_id", "movie_details.external_id")
@@ -106,20 +109,16 @@ function summaryQuery(externalIds: string[]) {
       "movie_details.release_date",
       "movie_details.adult",
       "movie_details.backdrop_path",
-      "movie_details.homepage",
       "movie_details.imdb_id",
       "movie_details.original_language",
       "movie_details.original_title",
-      "movie_details.overview",
       "movie_details.popularity",
       "movie_details.poster_path",
       "movie_details.status",
-      "movie_details.tagline",
       "genres_agg.genres",
       "companies_agg.production_companies",
       "countries_agg.production_countries",
       "directors_agg.directors",
-      "cast_names_agg.cast_names",
       "cast_names_agg.major_cast_names",
     ]);
 }
@@ -165,7 +164,6 @@ async function similarMovies(
 export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
   return {
     kind: "movie",
-    castNames: row.cast_names?.filter(Boolean) ?? [],
     majorCastNames: row.major_cast_names?.filter(Boolean) ?? [],
     directors: row.directors?.filter(isDefined) ?? [],
     genres: row.genres?.filter(Boolean) ?? [],
@@ -174,18 +172,15 @@ export function toMovieDataSummary(row: MovieSummaryRow): MovieDataSummary {
     adult: row.adult ?? undefined,
     backdrop_path: row.backdrop_path ?? undefined,
     budget: numOrUndefined(row.budget),
-    homepage: row.homepage ?? undefined,
     imdb_id: row.imdb_id ?? undefined,
     original_language: row.original_language ?? undefined,
     original_title: row.original_title ?? undefined,
-    overview: row.overview ?? undefined,
     popularity: numOrUndefined(row.popularity),
     poster_path: row.poster_path ?? undefined,
     release_date: row.release_date?.toISOString(),
     revenue: numOrUndefined(row.revenue),
     runtime: numOrUndefined(row.runtime),
     status: row.status ?? undefined,
-    tagline: row.tagline ?? undefined,
     vote_average: numOrUndefined(row.tmdb_score),
   };
 }
@@ -214,15 +209,19 @@ class MovieProvider implements MediaProvider {
     const map = new Map<string, DetailedWorkData>();
     if (externalIds.length === 0) return map;
 
-    const [summaries, casts] = await Promise.all([
-      this.getExternalDataSummary(externalIds),
+    const [rows, casts] = await Promise.all([
+      summaryQuery(externalIds)
+        .select(["movie_details.homepage", "movie_details.overview", "movie_details.tagline"])
+        .execute(),
       this.getCast(externalIds),
     ]);
-    for (const [externalId, summary] of summaries) {
-      if (summary.kind !== "movie") continue;
-      map.set(externalId, {
-        ...summary,
-        actors: casts.get(externalId) ?? [],
+    for (const row of rows) {
+      map.set(row.external_id, {
+        ...toMovieDataSummary(row),
+        homepage: row.homepage ?? undefined,
+        overview: row.overview ?? undefined,
+        tagline: row.tagline ?? undefined,
+        actors: casts.get(row.external_id) ?? [],
       });
     }
     return map;
@@ -234,9 +233,7 @@ class MovieProvider implements MediaProvider {
 
     const rows = await summaryQuery(externalIds).execute();
     for (const row of rows) {
-      if (hasValue(row.external_id) && hasValue(row.overview)) {
-        map.set(row.external_id, toMovieDataSummary(row));
-      }
+      map.set(row.external_id, toMovieDataSummary(row));
     }
     return map;
   }
@@ -260,6 +257,25 @@ class MovieProvider implements MediaProvider {
         profilePath: row.profile_path,
       });
       map.set(row.external_id, cast);
+    }
+    return map;
+  }
+
+  async getCastNames(externalIds: string[]): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>();
+    if (externalIds.length === 0) return map;
+
+    const rows = await db
+      .selectFrom("movie_actors")
+      .where("external_id", "in", externalIds)
+      .select((eb) => [
+        "external_id",
+        eb.fn.agg<string[]>("array_agg", ["actor_name"]).orderBy("cast_order").as("cast_names"),
+      ])
+      .groupBy("external_id")
+      .execute();
+    for (const row of rows) {
+      map.set(row.external_id, row.cast_names.filter(Boolean));
     }
     return map;
   }

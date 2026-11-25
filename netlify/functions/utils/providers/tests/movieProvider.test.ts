@@ -21,20 +21,16 @@ function makeMovieRow(overrides: Partial<MovieRowLike> = {}): MovieRowLike {
     release_date: new Date("2010-07-16"),
     adult: false,
     backdrop_path: "/s3TBrRGB1iav7gFOCNx3H31MoES.jpg",
-    homepage: "https://www.warnerbros.com/movies/inception",
     imdb_id: "tt1375666",
     original_language: "en",
     original_title: "Inception",
-    overview: "Cobb steals information from his targets by entering their dreams.",
     popularity: "87.3",
     poster_path: "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
     status: "Released",
-    tagline: "Your mind is the scene of the crime.",
     genres: ["Action", "Science Fiction", "Adventure"],
     production_companies: ["Warner Bros.", "Legendary Entertainment"],
     production_countries: ["United States of America", "United Kingdom"],
     directors: [{ name: "Christopher Nolan", profilePath: null }],
-    cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
     major_cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt"],
     ...overrides,
   };
@@ -47,11 +43,6 @@ function makeMovieRow(overrides: Partial<MovieRowLike> = {}): MovieRowLike {
 describe("toMovieDataSummary — field mapping", () => {
   it("tags the result with the movie discriminant", () => {
     expect(toMovieDataSummary(makeMovieRow()).kind).toBe("movie");
-  });
-
-  it("maps overview directly", () => {
-    const row = makeMovieRow({ overview: "A heist inside dreams." });
-    expect(toMovieDataSummary(row).overview).toBe("A heist inside dreams.");
   });
 
   it("coerces the tmdb_score string to a number for vote_average", () => {
@@ -107,44 +98,37 @@ describe("toMovieDataSummary — field mapping", () => {
     const row = makeMovieRow({
       adult: true,
       backdrop_path: "/backdrop.jpg",
-      homepage: "https://example.com",
       imdb_id: "tt1375666",
       original_language: "en",
       original_title: "Inception",
       poster_path: "/poster.jpg",
       status: "Released",
-      tagline: "Your mind is the scene of the crime.",
     });
     const result = toMovieDataSummary(row);
     expect(result.adult).toBe(true);
     expect(result.backdrop_path).toBe("/backdrop.jpg");
-    expect(result.homepage).toBe("https://example.com");
     expect(result.imdb_id).toBe("tt1375666");
     expect(result.original_language).toBe("en");
     expect(result.original_title).toBe("Inception");
     expect(result.poster_path).toBe("/poster.jpg");
     expect(result.status).toBe("Released");
-    expect(result.tagline).toBe("Your mind is the scene of the crime.");
   });
 
   it("coerces nullable string columns to undefined", () => {
     const row = makeMovieRow({
       adult: null,
       backdrop_path: null,
-      homepage: null,
       imdb_id: null,
       original_language: null,
       original_title: null,
       poster_path: null,
       status: null,
-      tagline: null,
     });
     const result = toMovieDataSummary(row);
     expect(result.adult).toBeUndefined();
     expect(result.backdrop_path).toBeUndefined();
-    expect(result.homepage).toBeUndefined();
     expect(result.poster_path).toBeUndefined();
-    expect(result.tagline).toBeUndefined();
+    expect(result.status).toBeUndefined();
   });
 });
 
@@ -163,25 +147,25 @@ describe("toMovieDataSummary — array handling", () => {
     expect(toMovieDataSummary(row).genres).toStrictEqual([]);
   });
 
-  it("keeps cast names in billed order", () => {
+  it("keeps major cast names in billed order", () => {
     const row = makeMovieRow({
-      cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"],
+      major_cast_names: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"],
     });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual([
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual([
       "Leonardo DiCaprio",
       "Joseph Gordon-Levitt",
       "Elliot Page",
     ]);
   });
 
-  it("returns an empty array for cast names when null", () => {
-    const row = makeMovieRow({ cast_names: null });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual([]);
+  it("returns an empty array for major cast names when null", () => {
+    const row = makeMovieRow({ major_cast_names: null });
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual([]);
   });
 
-  it("drops empty cast names left by the aggregate join", () => {
-    const row = makeMovieRow({ cast_names: ["Leonardo DiCaprio", ""] });
-    expect(toMovieDataSummary(row).castNames).toStrictEqual(["Leonardo DiCaprio"]);
+  it("drops empty major cast names left by the aggregate join", () => {
+    const row = makeMovieRow({ major_cast_names: ["Leonardo DiCaprio", ""] });
+    expect(toMovieDataSummary(row).majorCastNames).toStrictEqual(["Leonardo DiCaprio"]);
   });
 
   it("passes through a populated directors array", () => {

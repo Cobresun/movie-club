@@ -1,7 +1,7 @@
 import { type DetailedBookData } from "../../lib/types/book";
 import { ClubType, WorkType } from "../../lib/types/generated/db";
 import { type DetailedWorkListItem } from "../../lib/types/lists";
-import { type DetailedMovieData } from "../../lib/types/movie";
+import { type MovieDataWithCastNames } from "../../lib/types/movie";
 import { type FilterSelection } from "./components/filterTypes";
 import { filterWorks } from "./filterWorks";
 
@@ -27,8 +27,8 @@ function bookItem(
 
 function movieItem(
   id: string,
-  data: Partial<DetailedMovieData>,
-): DetailedWorkListItem<DetailedMovieData> {
+  data: Partial<MovieDataWithCastNames>,
+): DetailedWorkListItem<MovieDataWithCastNames> {
   return {
     id,
     type: WorkType.MOVIE,
@@ -36,11 +36,8 @@ function movieItem(
     createdDate: "2026-01-01",
     externalData: {
       kind: "movie",
-      actors: data.actors ?? [],
-      // The actor filter reads castNames (the bulk-payload field); derive it
-      // from the test's actor fixtures so filter tests exercise the real path.
-      castNames: data.castNames ?? (data.actors ?? []).map((a) => a.name),
-      majorCastNames: data.castNames ?? (data.actors ?? []).map((a) => a.name),
+      castNames: data.castNames ?? [],
+      majorCastNames: data.castNames ?? [],
       directors: [],
       genres: data.genres ?? [],
       production_companies: data.production_companies ?? [],
@@ -142,20 +139,14 @@ describe("filterWorks movie cast filter", () => {
     movieItem("forrest", {
       title: "Forrest Gump",
       genres: ["Drama"],
-      actors: [
-        { name: "Tom Hanks", character: "Forrest Gump", profilePath: null },
-        { name: "Robin Wright", character: "Jenny Curran", profilePath: "/rw.jpg" },
-      ],
+      castNames: ["Tom Hanks", "Robin Wright"],
     }),
     movieItem("matrix", {
       title: "The Matrix",
       genres: ["Action"],
-      actors: [
-        { name: "Keanu Reeves", character: "Neo", profilePath: "/kr.jpg" },
-        { name: "Laurence Fishburne", character: "Morpheus", profilePath: null },
-      ],
+      castNames: ["Keanu Reeves", "Laurence Fishburne"],
     }),
-    movieItem("silent", { title: "Silent Film", actors: [] }),
+    movieItem("silent", { title: "Silent Film", castNames: [] }),
   ];
 
   it("keeps movies the actor appears in", () => {

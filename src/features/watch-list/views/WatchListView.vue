@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from "vue";
 
-import { hasElements } from "../../../../lib/checks/checks";
-import { ClubType } from "../../../../lib/types/generated/db";
+import { hasElements, isDefined } from "../../../../lib/checks/checks";
 import { ClubListSummary, DetailedWorkListItem } from "../../../../lib/types/lists";
 import AddWorkModal from "../components/AddWorkModal.vue";
 import ListItems from "../components/ListItems.vue";
@@ -16,7 +15,6 @@ import { useAllUserListItems, useClubLists } from "@/service/useList";
 
 const clubSlug = useClubSlug();
 const { data: club } = useClub(clubSlug);
-const clubType = computed(() => club.value?.type ?? ClubType.MOVIE);
 const { data: lists, isLoading } = useClubLists(clubSlug);
 const reviewsListId = useReviewsListId(clubSlug);
 const { data: membersData } = useMembers(clubSlug);
@@ -73,13 +71,15 @@ const shareList = (listId: string) => {
 <template>
   <div class="p-2 text-center">
     <page-header :has-back="false" page-name="Lists" />
-    <WatchListSkeleton v-if="isLoading" />
+    <!-- The filters depend on the club's type, so wait for the club too. -->
+    <WatchListSkeleton v-if="isLoading || !isDefined(club)" />
     <template v-else-if="hasElements(userLists)">
       <search-filter-bar
         v-model:filtered-data="filteredItems"
         v-model:has-active-filters="hasActiveFilters"
         :data="searchData"
-        :club-type="clubType"
+        :club-slug="clubSlug"
+        :club-type="club.type"
         search-placeholder="Search watchlists"
         :exclude-filter-keys="excludedFilterKeys"
       >
