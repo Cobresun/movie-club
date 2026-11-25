@@ -17,62 +17,23 @@
         <mdicon name="fire" :size="18" aria-hidden="true" />
         {{ streakLine }}
       </p>
-      <Menu as="div" class="relative">
-        <MenuButton
+      <div class="flex flex-wrap justify-center gap-2">
+        <button
           class="bg-lowBackground duration-slow ease-spring flex min-h-[44px] items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-white/[0.12] transition ring-inset hover:bg-white/10 active:scale-92 active:duration-75"
+          @click="showRules = true"
         >
-          <mdicon
-            :name="game.finished.value ? 'help-circle-outline' : 'lightbulb-on-outline'"
-            :size="20"
-            class="text-highlight"
-          />
-          {{ game.finished.value ? "Help" : "Hints & help" }}
-          <mdicon name="chevron-down" :size="18" class="text-white/70" />
-        </MenuButton>
-        <transition
-          enter-active-class="transition duration-fast ease-standard"
-          enter-from-class="-translate-y-1 scale-95 opacity-0"
-          leave-active-class="transition duration-fast ease-standard"
-          leave-to-class="-translate-y-1 scale-95 opacity-0"
+          <mdicon name="help-circle-outline" :size="20" class="text-highlight" />
+          How to play
+        </button>
+        <button
+          v-if="!game.finished.value"
+          class="bg-lowBackground duration-slow ease-spring flex min-h-[44px] items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-white/[0.12] transition ring-inset hover:bg-white/10 active:scale-92 active:duration-75"
+          @click="confirmingGiveUp = true"
         >
-          <MenuItems
-            class="bg-lowBackground absolute top-full left-1/2 z-50 mt-1 min-w-[200px] origin-top -translate-x-1/2 overflow-hidden rounded-xl py-1.5 text-left shadow-lg"
-          >
-            <MenuItem v-slot="{ active }">
-              <button
-                class="flex w-full items-center gap-3 px-4 py-2.5"
-                :class="active ? 'bg-white/10' : ''"
-                @click="showRules = true"
-              >
-                <mdicon name="help-circle-outline" :size="20" />
-                How to play
-              </button>
-            </MenuItem>
-            <template v-if="!game.finished.value">
-              <MenuItem v-slot="{ active, disabled }" :disabled="!game.canHint.value">
-                <button
-                  class="flex w-full items-center gap-3 px-4 py-2.5"
-                  :class="[active ? 'bg-white/10' : '', disabled ? 'opacity-40' : '']"
-                  @click="takeHint"
-                >
-                  <mdicon name="lightbulb-on-outline" :size="20" />
-                  Hint
-                </button>
-              </MenuItem>
-              <MenuItem v-slot="{ active }">
-                <button
-                  class="flex w-full items-center gap-3 px-4 py-2.5"
-                  :class="active ? 'bg-white/10' : ''"
-                  @click="confirmingGiveUp = true"
-                >
-                  <mdicon name="flag-outline" :size="20" />
-                  Give up
-                </button>
-              </MenuItem>
-            </template>
-          </MenuItems>
-        </transition>
-      </Menu>
+          <mdicon name="flag-outline" :size="20" class="text-highlight" />
+          Give up
+        </button>
+      </div>
       <nav aria-label="Other puzzles" class="flex justify-center gap-4 text-sm">
         <router-link
           v-if="game.fromArchive"
@@ -170,22 +131,20 @@
     </section>
 
     <template v-else>
-      <GuessInput ref="guessInput" :pool="game.pool" :noun="noun" @pick="onPick" />
+      <GuessInput ref="guessInput" :pool="game.pool" :noun="noun" @pick="onPick">
+        <button
+          class="bg-secondary duration-slow ease-spring ring-highlight/45 flex shrink-0 items-center gap-1.5 rounded-[10px] px-3.5 text-[15px] font-semibold ring-1 transition ring-inset enabled:hover:brightness-125 enabled:active:scale-92 enabled:active:duration-75 disabled:opacity-40"
+          :disabled="!game.canHint.value"
+          @click="takeHint"
+        >
+          <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight" />
+          <!-- Poppins sits high in its line box; a pixel down centres it on the bulb. -->
+          <span class="translate-y-px">Hint</span>
+        </button>
+      </GuessInput>
       <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
         {{ notice }}
       </p>
-      <div
-        v-if="offerHint"
-        class="bg-lowBackground animate-fade-up -mt-2 flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-white/80"
-      >
-        <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight shrink-0" />
-        <p class="grow">Stuck? A hint reveals a {{ noun }} halfway to the answer.</p>
-        <v-btn
-          class="duration-slow! ease-spring! shrink-0 px-2 text-sm active:scale-92! active:duration-75!"
-          @click="takeHint"
-          >Get a hint</v-btn
-        >
-      </div>
     </template>
 
     <section v-if="isDefined(spotlight)" aria-labelledby="daily-game-latest">
@@ -205,6 +164,19 @@
           :nudge="nudgeFor(spotlight.work.id)"
         />
       </ul>
+      <div
+        v-if="offerHint"
+        class="bg-lowBackground animate-fade-up mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/80"
+      >
+        <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight shrink-0" />
+        <p class="grow">Three cold in a row.</p>
+        <button
+          class="text-highlight shrink-0 rounded px-1 font-semibold hover:underline"
+          @click="takeHint"
+        >
+          Get a hint
+        </button>
+      </div>
     </section>
 
     <section v-if="hasElements(game.guesses.value)" aria-labelledby="daily-game-guesses">
@@ -282,7 +254,6 @@
 </template>
 
 <script setup lang="ts">
-import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/vue";
 import { computed, ref, useTemplateRef, watch } from "vue";
 
 import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
@@ -390,17 +361,18 @@ const listArrival = (guess: RankedGuess) => {
   return isDefined(spotlight.value) ? "quiet" : "featured";
 };
 
-// Players who never open the menu don't learn hints exist, so offer one in
-// place once they've made a few guesses without taking any.
-const HINT_OFFER_AFTER_GUESSES = 5;
+// The Hint button is always there, but a player on a cold run is the one
+// most likely to want it, so the spotlight offers it once they're stuck.
+const STUCK_AFTER_COLD_GUESSES = 3; // Matches "Three" in the offer.
 
-const offerHint = computed(
-  () =>
-    !game.finished.value &&
+const offerHint = computed(() => {
+  const recent = game.guesses.value.slice(-STUCK_AFTER_COLD_GUESSES);
+  return (
     game.canHint.value &&
-    game.hintCount.value === 0 &&
-    game.guessCount.value >= HINT_OFFER_AFTER_GUESSES,
-);
+    recent.length === STUCK_AFTER_COLD_GUESSES &&
+    recent.every((guess) => !guess.hint && guess.temperature === "cold")
+  );
+});
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 

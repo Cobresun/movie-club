@@ -40,13 +40,8 @@ const guessList = () => screen.getByRole("list", { name: "Guesses ranked by clos
 const row = (title: string) =>
   within(guessList()).getByRole("listitem", { name: new RegExp(`^${title} \\(`) });
 
-const chooseFromMenu = async (user: User, item: string) => {
-  await user.click(screen.getByRole("button", { name: "Hints & help" }));
-  await user.click(screen.getByRole("menuitem", { name: item }));
-};
-
 const giveUp = async (user: User) => {
-  await chooseFromMenu(user, "Give up");
+  await user.click(screen.getByRole("button", { name: "Give up" }));
   await user.click(screen.getByRole("button", { name: "Yes, reveal it" }));
 };
 
@@ -289,24 +284,23 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Toy Story");
-    await chooseFromMenu(user, "Hint");
+    await user.click(screen.getByRole("button", { name: "Hint" }));
 
     expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
   });
 
-  it("offers a hint in place to a player who has guessed a while without one", async () => {
+  it("offers a hint to a player on a cold run", async () => {
     const { user } = await renderGame();
 
-    for (const title of ["Alien", "The Matrix", "Amélie", "Paddington 2"]) {
-      await guess(user, title);
-    }
+    await guess(user, "Alien");
+    await guess(user, "Toy Story");
     expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
 
-    await guess(user, "Toy Story");
+    await guess(user, "Jaws");
     await user.click(screen.getByRole("button", { name: "Get a hint" }));
 
-    expect(screen.getByText("5 guesses · 1 hint")).toBeInTheDocument();
+    expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
   });
 
@@ -314,7 +308,7 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Alien");
-    await chooseFromMenu(user, "Hint");
+    await user.click(screen.getByRole("button", { name: "Hint" }));
     expect(screen.getByText("1 guess · 1 hint")).toBeInTheDocument();
 
     await guess(user, "Heat");
@@ -328,7 +322,7 @@ describe("DailyGameView", () => {
   it("shares a give-up after only a hint without calling the hint a guess", async () => {
     const { user } = await renderGame();
 
-    await chooseFromMenu(user, "Hint");
+    await user.click(screen.getByRole("button", { name: "Hint" }));
     await giveUp(user);
     await user.click(screen.getByRole("button", { name: "Share result" }));
 
@@ -350,7 +344,7 @@ describe("DailyGameView", () => {
   it("keeps playing when the player backs out of giving up", async () => {
     const { user } = await renderGame();
 
-    await chooseFromMenu(user, "Give up");
+    await user.click(screen.getByRole("button", { name: "Give up" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("heading", { name: "Better luck tomorrow" })).not.toBeInTheDocument();
@@ -361,15 +355,14 @@ describe("DailyGameView", () => {
     const { user } = await renderGame();
 
     await guess(user, "Collateral");
-    await user.click(screen.getByRole("button", { name: "Hints & help" }));
 
-    expect(screen.getByRole("menuitem", { name: "Hint" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("button", { name: "Hint" })).toBeDisabled();
   });
 
-  it("explains the rules from the menu", async () => {
+  it("explains the rules", async () => {
     const { user } = await renderGame();
 
-    await chooseFromMenu(user, "How to play");
+    await user.click(screen.getByRole("button", { name: "How to play" }));
 
     expect(screen.getByRole("heading", { name: "How to play" })).toBeInTheDocument();
     expect(screen.getByText(/A hint reveals a movie halfway/)).toBeInTheDocument();
@@ -378,15 +371,14 @@ describe("DailyGameView", () => {
     expect(screen.queryByRole("heading", { name: "How to play" })).not.toBeInTheDocument();
   });
 
-  it("leaves only the rules in the menu once the game is over", async () => {
+  it("leaves only the rules once the game is over", async () => {
     const { user } = await renderGame();
 
     await guess(user, "Heat");
-    await user.click(screen.getByRole("button", { name: "Help" }));
 
-    expect(screen.getAllByRole("menuitem").map((item) => item.textContent?.trim())).toStrictEqual([
-      "How to play",
-    ]);
+    expect(screen.getByRole("button", { name: "How to play" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hint" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Give up" })).not.toBeInTheDocument();
   });
 
   it("keeps the player's progress when they come back", async () => {
