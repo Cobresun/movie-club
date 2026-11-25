@@ -61,7 +61,7 @@
 
 /* Reduced-motion layer: durations collapse to near-zero rather than
    `animation: none` so transitions still COMPLETE — overlay dismissal
-   (VModal/VBottomSheet/VSideDrawer) relies on @after-leave firing. */
+   (VModal/VSideDrawer) relies on @after-leave firing. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

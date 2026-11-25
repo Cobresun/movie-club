@@ -1,59 +1,82 @@
 <template>
-  <div>
-    <v-backdrop
-      :z-index="backdropZIndex"
-      :visible="isVisible"
-      :opacity="backdropOpacity"
-      :tracking="dragging"
-      @close="handleClose"
-    />
+  <!-- The overlay is a scroller: a screen-high gap, then a screen-high stage
+       with the sheet at its foot. Scrolled to the sheet, it is open; scrolled
+       back, the sheet sits below the screen. Swiping the sheet away is native
+       scrolling, which the browser runs off the main thread at the display's
+       refresh rate, with the platform's own momentum and snapping. -->
+  <div
+    ref="scrollerRef"
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    class="sheet-scroller fixed inset-0 overscroll-contain scroll-smooth outline-hidden"
+    :class="[
+      contentZIndexClass,
+      closing ? 'snap-none overflow-hidden' : 'snap-y snap-mandatory overflow-y-auto',
+    ]"
+    @click.stop=""
+    @scroll.passive="onScroll"
+  >
+    <div class="h-full" @click.self="handleClose"></div>
 
-    <Transition name="slide-up" appear @after-leave="onTransitionEnd">
-      <!-- Touch listeners sit on the whole sheet so pulling down from the top
-           of the content drags it, not just the grabber. `touchmove` stays
-           non-passive: it has to cancel the scroll once a drag is claimed. -->
+    <div class="flex h-full flex-col justify-end" @click.self="handleClose">
+      <!-- The closed snap point: the sheet's top edge at the foot of the screen.
+           Releasing a swipe past halfway down the sheet settles here. -->
+      <div class="snap-end"></div>
+
       <div
-        v-if="isVisible"
         ref="sheetRef"
-        role="dialog"
-        aria-modal="true"
-        tabindex="-1"
-        class="sheet bg-background duration-slow ease-emphasized fixed inset-x-0 bottom-0 min-h-0 w-full overflow-y-auto overscroll-contain rounded-t-2xl outline-hidden transition-[transform,min-height,max-height,bottom]"
-        :class="contentZIndexClass"
-        :style="sheetStyle"
-        @click.stop=""
-        @touchstart.passive="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend.passive="handleTouchEnd"
-        @touchcancel.passive="handleTouchEnd"
+        class="sheet bg-background duration-slow ease-emphasized relative flex min-h-0 w-full flex-col overflow-clip rounded-t-2xl transition-[min-height,max-height,bottom]"
+        :style="keyboardStyle"
       >
+        <!-- Inside the sheet, so its fade can follow the sheet's own view
+             timeline; `fixed` still spans the screen. -->
         <div
-          ref="handleRef"
-          class="sticky top-0 z-10 flex h-8 w-full touch-none items-center justify-center"
+          aria-hidden="true"
+          class="sheet-backdrop pointer-events-none fixed inset-0 -z-10 bg-black/50"
+        ></div>
+
+        <!-- Outside the content's scroller, so swiping the grabber always moves
+             the sheet, however far its content is scrolled. -->
+        <div
+          class="absolute inset-x-0 top-0 z-10 flex h-8 items-center justify-center"
           :class="{ 'bg-background': !transparentHandle }"
         >
           <div class="h-1.5 w-12 rounded-full bg-gray-400"></div>
         </div>
 
-        <div :class="contentClass">
-          <!-- `closing` flips as soon as dismissal starts (the sheet stays
-               mounted while the leave transition plays), so slot content can
-               cancel deferred work instead of janking the slide-out. -->
-          <slot :closing="!isVisible" />
+        <!-- Default `overscroll-behavior`: a swipe down from the top of the
+             content carries on into the overlay and pulls the sheet down. -->
+        <div class="min-h-0 flex-1 overflow-y-auto pt-8">
+          <div :class="contentClass">
+            <!-- `closing` flips as soon as a dismissal the sheet animates
+                 starts, so slot content can cancel deferred work instead of
+                 janking the slide-out. -->
+            <slot :closing="closing" />
+          </div>
         </div>
       </div>
-    </Transition>
+
+      <!-- The open snap point: the foot of the stage. On its own element
+           rather than the sheet, so lifting the sheet over a keyboard doesn't
+           move it and have the overlay scroll the sheet back down. -->
+      <div class="snap-end"></div>
+    </div>
+
+    <!-- Sheet-coloured room below the sheet, so pulling it up stretches it
+         rather than lifting it off the bottom of the screen. -->
+    <div class="bg-background h-24"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
+import { isDefined } from "../../../lib/checks/checks.js";
 import { useBackButtonClose } from "../composables/useBackButtonClose.js";
 import { useBodyScrollLock } from "../composables/useBodyScrollLock.js";
 import { useKeyboardInset } from "../composables/useKeyboardInset.js";
-import { type ZIndex, lowerZIndex, zIndexClass } from "../zIndex.js";
-import VBackdrop from "./VBackdrop.vue";
+import { type ZIndex, zIndexClass } from "../zIndex.js";
 
 const {
   contentClass = "px-4 pb-8",
@@ -69,25 +92,63 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const backdropZIndex = computed(() => lowerZIndex(zIndex));
-
 const contentZIndexClass = computed(() => zIndexClass(zIndex));
 
+const scrollerRef = ref<HTMLElement>();
 const sheetRef = ref<HTMLElement>();
-const handleRef = ref<HTMLElement>();
 
-const isVisible = ref(true);
-const onTransitionEnd = () => {
+// Set when the backdrop, the back button or the like dismisses the sheet. A
+// swipe needs no such state: the user has already moved it off screen.
+const closing = ref(false);
+// Until the sheet first comes into view it is opening, not leaving.
+let opened = false;
+let closed = false;
+
+useBodyScrollLock(computed(() => !closing.value));
+
+const isOutOfView = (): boolean => {
+  const scroller = scrollerRef.value;
+  const sheet = sheetRef.value;
+  if (!isDefined(scroller) || !isDefined(sheet)) return true;
+  // A pixel of slack for scroll positions rounded to whole pixels.
+  return scroller.scrollTop + scroller.clientHeight <= sheet.offsetTop + 1;
+};
+
+const finish = () => {
+  if (closed) return;
+  closed = true;
   emit("close");
 };
 
-useBodyScrollLock(isVisible);
-
-// Every dismissal goes through the leave transition, so the sheet always
-// slides out rather than vanishing.
-const handleClose = () => {
-  isVisible.value = false;
+const onScroll = () => {
+  if (!isOutOfView()) {
+    opened = true;
+  } else if (opened || closing.value) {
+    finish();
+  }
 };
+
+const handleClose = () => {
+  closing.value = true;
+};
+
+// Runs once `closing` has turned snapping off, so the scroll lands exactly
+// where the sheet leaves the screen, even while a keyboard has lifted it above
+// the closed snap point; and turned user scrolling off, so a touch can't stop
+// the slide halfway.
+watch(
+  closing,
+  () => {
+    const scroller = scrollerRef.value;
+    const sheet = sheetRef.value;
+    if (isDefined(scroller) && isDefined(sheet)) {
+      scroller.scrollTop = sheet.offsetTop - scroller.clientHeight;
+    }
+    // An instant scroll (reduced motion) has already arrived.
+    if (isOutOfView()) finish();
+  },
+  { flush: "post" },
+);
 
 // Dismiss the sheet when the browser back button (or back gesture) is pressed.
 useBackButtonClose(handleClose);
@@ -98,9 +159,14 @@ useBackButtonClose(handleClose);
 // before slot content mounts and possibly autofocuses a field of its own.
 const returnFocusTo = document.activeElement;
 onMounted(() => {
-  if (!sheetRef.value?.contains(document.activeElement)) {
-    sheetRef.value?.focus({ preventScroll: true });
+  const scroller = scrollerRef.value;
+  if (!isDefined(scroller)) return;
+  if (!scroller.contains(document.activeElement)) {
+    scroller.focus({ preventScroll: true });
   }
+  // `scroll-smooth` turns this into the opening slide; the open snap point
+  // stops it with the sheet's foot on the foot of the screen.
+  scroller.scrollTop = scroller.scrollHeight;
 });
 onUnmounted(() => {
   if (returnFocusTo instanceof HTMLElement && returnFocusTo.isConnected) {
@@ -108,165 +174,19 @@ onUnmounted(() => {
   }
 });
 
-// Drag to dismiss. The offset only feeds the sheet's own `:style`, so a
-// touchmove patches that one element and leaves the slot alone. Transitions
-// are off while the finger is down so the sheet tracks it 1:1, and back on at
-// release so it settles back or slides the rest of the way out from exactly
-// where it was let go.
-
-// Released past this fraction of the sheet's height, the sheet dismisses.
-const DISMISS_FRACTION = 0.25;
-// A downward flick faster than this (px/ms) dismisses regardless of distance…
-const FLING_VELOCITY = 0.5;
-// …as long as it travelled far enough not to be a sloppy tap.
-const FLING_MIN_DISTANCE = 16;
-// Release velocity is measured over the tail of the gesture, not the whole of
-// it, so a slow drag ending in a flick reads as a flick.
-const VELOCITY_WINDOW_MS = 100;
-
-interface Gesture {
-  startX: number;
-  startY: number;
-  // `pending` until the first move decides between dragging the sheet and
-  // letting the content scroll; a gesture never switches after that.
-  mode: "pending" | "drag" | "scroll";
-  offset: number;
-  height: number;
-  samples: { y: number; t: number }[];
-}
-
-let gesture: Gesture | undefined;
-
-const dragOffset = ref(0);
-const dragHeight = ref(0);
-const dragging = ref(false);
-// Set once a drag is released past the threshold: both layers head for their
-// closed state from wherever the finger let go.
-const dismissing = ref(false);
-
-const backdropOpacity = computed(() => {
-  if (dismissing.value) return 0;
-  if (dragOffset.value <= 0) return undefined;
-  return Math.max(0, 1 - dragOffset.value / dragHeight.value);
-});
-
-// Whether a touch landing on `target` may pull the sheet down. Not when it
-// lands on a field or on a control handling its own touches (`touch-action:
-// none`, e.g. the score dial), and not while anything between it and the
-// sheet is scrolled — then pulling down scrolls back up first, as natively.
-const contentCanDrag = (target: EventTarget | null): boolean => {
-  const sheet = sheetRef.value;
-  for (let el = target instanceof Element ? target : null; el; el = el.parentElement) {
-    if (el.matches("input, textarea, select, [contenteditable]")) return false;
-    if (getComputedStyle(el).touchAction === "none") return false;
-    if (el.scrollTop > 0) return false;
-    if (el === sheet) return true;
-  }
-  return false;
-};
-
-const handleTouchStart = (event: TouchEvent) => {
-  gesture = undefined;
-  const sheet = sheetRef.value;
-  if (!isVisible.value || !sheet || event.touches.length !== 1) return;
-  // A sheet opened from inside this one (score entry over work details) sits
-  // in this sheet's DOM, so its touches bubble up here too. Each gesture
-  // belongs to the innermost modal it lands in, so only the top layer moves.
-  if (!(event.target instanceof Element)) return;
-  if (event.target.closest('[aria-modal="true"]') !== sheet) return;
-
-  const touch = event.touches[0];
-  const fromHandle = handleRef.value?.contains(event.target as Node) ?? false;
-  gesture = {
-    startX: touch.clientX,
-    startY: touch.clientY,
-    mode: fromHandle ? "drag" : contentCanDrag(event.target) ? "pending" : "scroll",
-    offset: 0,
-    height: sheet.offsetHeight,
-    samples: [{ y: touch.clientY, t: event.timeStamp }],
-  };
-};
-
-const handleTouchMove = (event: TouchEvent) => {
-  if (!gesture || gesture.mode === "scroll" || event.touches.length !== 1) return;
-
-  const touch = event.touches[0];
-  const dx = touch.clientX - gesture.startX;
-  const dy = touch.clientY - gesture.startY;
-
-  if (gesture.mode === "pending") {
-    if (dx === 0 && dy === 0) return;
-    // Mostly-downward from the top of the content drags the sheet; anything
-    // else (scrolling up, a sideways swipe) is left to the browser.
-    gesture.mode = dy > 0 && dy >= Math.abs(dx) ? "drag" : "scroll";
-    if (gesture.mode === "scroll") return;
-  }
-
-  if (event.cancelable) event.preventDefault();
-
-  gesture.offset = Math.max(0, dy);
-  dragging.value = true;
-  const samples = gesture.samples;
-  samples.push({ y: touch.clientY, t: event.timeStamp });
-  while (samples.length > 2 && event.timeStamp - samples[0].t > VELOCITY_WINDOW_MS) {
-    samples.shift();
-  }
-
-  dragHeight.value = gesture.height;
-  dragOffset.value = gesture.offset;
-};
-
-const releaseVelocity = (samples: Gesture["samples"]): number => {
-  const first = samples[0];
-  const last = samples[samples.length - 1];
-  const elapsed = last.t - first.t;
-  return elapsed > 0 ? (last.y - first.y) / elapsed : 0;
-};
-
-const handleTouchEnd = async (event: TouchEvent) => {
-  const ended = gesture;
-  gesture = undefined;
-  if (!ended || ended.mode !== "drag") return;
-  dragging.value = false;
-
-  const velocity = releaseVelocity(ended.samples);
-  const flungDown = velocity > FLING_VELOCITY && ended.offset > FLING_MIN_DISTANCE;
-  const flungUp = velocity < -FLING_VELOCITY;
-  const shouldClose =
-    event.type === "touchend" &&
-    (flungDown || (!flungUp && ended.offset > ended.height * DISMISS_FRACTION));
-
-  if (!shouldClose) {
-    dragOffset.value = 0;
-    return;
-  }
-
-  // Aim both layers at their closed state and let that render before the
-  // leave starts: once `v-if` drops the sheet, Vue no longer patches it.
-  dismissing.value = true;
-  await nextTick();
-  handleClose();
-};
-
 // A keyboard opening would otherwise shove the whole sheet upwards, leaving it
 // floating mid-screen with a gap underneath. Instead the sheet grows into an
 // expanded state: pinned to the top of the keyboard, filling everything above
 // it, the way a native sheet does when you start typing in one.
 const { keyboardInset, viewportHeight, viewportOffset } = useKeyboardInset();
 
-const dragStyle = computed(() => {
-  if (dismissing.value) return { transform: "translateY(100%)" };
-  return {
-    transform: dragOffset.value > 0 ? `translateY(${dragOffset.value}px)` : undefined,
-    transition: dragging.value ? "none" : undefined,
-  };
-});
-
 // The expanded state is set through `min-height` and `max-height` rather than
 // `height`: both have a length to ease from at rest, where `height: auto` has
 // none and would snap while `bottom` eased, flinging the sheet's top off
-// screen. The pan goes through `translate`, which isn't transitioned, so the
-// sheet stays put on screen while iOS pans rather than easing after it.
+// screen. The pan goes through `margin-bottom`, which isn't transitioned, so
+// the sheet stays put on screen while iOS pans rather than easing after it. A
+// `translate` would do the same but make the sheet the containing block of its
+// `fixed` backdrop.
 const keyboardStyle = computed(() => {
   if (keyboardInset.value <= 0) return {};
   const height = `${viewportHeight.value}px`;
@@ -274,14 +194,20 @@ const keyboardStyle = computed(() => {
     bottom: `${keyboardInset.value}px`,
     minHeight: height,
     maxHeight: height,
-    translate: `0 ${viewportOffset.value}px`,
+    marginBottom: `${-viewportOffset.value}px`,
   };
 });
-
-const sheetStyle = computed(() => ({ ...keyboardStyle.value, ...dragStyle.value }));
 </script>
 
 <style scoped>
+.sheet-scroller {
+  scrollbar-width: none;
+}
+
+.sheet-scroller::-webkit-scrollbar {
+  display: none;
+}
+
 .sheet {
   /* Cap the sheet height so the grabber stays on screen. `dvh` tracks the
      *visible* viewport, which matters on mobile browsers (notably Chrome/Safari
@@ -290,17 +216,26 @@ const sheetStyle = computed(() => ({ ...keyboardStyle.value, ...dragStyle.value 
      the screen. `vh` is kept as a fallback for browsers without `dvh`. */
   max-height: 90vh;
   max-height: 90dvh;
+  view-timeline: --sheet block;
 }
 
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform var(--motion-slow) var(--ease-emphasized);
+/* The backdrop darkens as the sheet comes into view and lightens as it is
+   swiped away, driven by the scroll itself rather than by script. Without
+   scroll-driven animations it stays at full strength while the sheet is up.
+   It rests at `opacity: 0` so the frame before the timeline attaches doesn't
+   flash it at full strength. */
+@supports (animation-timeline: view()) {
+  .sheet-backdrop {
+    opacity: 0;
+    animation: sheet-backdrop linear both;
+    animation-timeline: --sheet;
+    animation-range: entry;
+  }
 }
 
-/* No `leave-from` state: the leave starts from wherever the sheet is, which
-   after a drag is partway down, not fully open. */
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
+@keyframes sheet-backdrop {
+  to {
+    opacity: 1;
+  }
 }
 </style>
