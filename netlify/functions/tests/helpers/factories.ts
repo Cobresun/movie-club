@@ -280,9 +280,9 @@ export async function createAwardsYear(
 }
 
 /**
- * Walk an awards year forward to `step`. The step endpoint only ever moves one
- * phase forward, and only once every member has done their part, so arrange
- * nominations and ballots before calling this.
+ * Walk an awards year to `step`, one phase at a time. Moving forward needs
+ * every member to have done their part, so arrange nominations and ballots
+ * before calling this.
  */
 export async function setAwardsStep(
   club: SeededClub,
@@ -293,7 +293,9 @@ export async function setAwardsStep(
   const current = await api.get<ClubAwards>(`/api/club/${club.slug}/awards/${year}`);
   assertOk(`Reading ${year} awards for "${club.slug}"`, current);
 
-  for (let next: AwardsStep = current.body.step + 1; next <= step; next += 1) {
+  const direction = step > current.body.step ? 1 : -1;
+  for (let next: AwardsStep = current.body.step; next !== step;) {
+    next += direction;
     const moved = await api.put(`/api/club/${club.slug}/awards/${year}/step`, {
       body: { step: next },
       as: session,
