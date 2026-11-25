@@ -90,6 +90,21 @@ describe("DailyGameView", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Reelated #7" })).toBeInTheDocument();
   });
 
+  it("names the browser tab after the game while it is open", async () => {
+    const { unmount } = await renderGame();
+
+    expect(document.title).toBe("Reelated: The daily movie guessing game");
+    unmount();
+    expect(document.title).toBe("Movie Club");
+  });
+
+  it("names the browser tab after a past puzzle's day", async () => {
+    servePuzzles({ "2026-10-20": 5 });
+    await renderGame("2026-10-20");
+
+    expect(document.title).toBe("Reelated: October 20, 2026");
+  });
+
   it("holds the board's shape with a placeholder while the puzzle loads", async () => {
     server.use(http.get("/api/daily-game/movie/:date", () => delay("infinite")));
 
