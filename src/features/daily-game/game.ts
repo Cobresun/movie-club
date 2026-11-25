@@ -1,5 +1,5 @@
-import { isDefined } from "@/../lib/checks/checks";
-import { type DailyGameWork } from "@/../lib/types/dailyGame";
+import { isDefined, isTrue } from "@/../lib/checks/checks";
+import { type DailyGameClue, type DailyGameWork } from "@/../lib/types/dailyGame";
 
 /** The player's own calendar day, `YYYY-MM-DD` — the puzzle turns over at their midnight. */
 export function localDate(now: Date): string {
@@ -46,6 +46,38 @@ export function hintRank(guessedRanks: ReadonlySet<number>, poolSize: number): n
   }
   const best = Math.min(...guessedRanks);
   return best <= 2 ? undefined : Math.max(2, Math.floor(best / 2));
+}
+
+export type YearDirection = "later" | "earlier" | "same";
+
+/** A clue chip as the board shows it; the year chip also points to the answer's year. */
+export interface GuessClue extends DailyGameClue {
+  direction?: YearDirection;
+}
+
+const decadeOf = (year: number) => Math.floor(year / 10) * 10;
+
+/**
+ * Which way the answer's year lies from the guess's, with the era clue folded
+ * in so the year reads as one chip. `sharesEra` is whether the guess was given
+ * the era clue, the part that counts towards its rank.
+ */
+export function yearClue(guessYear: number, answerYear: number, sharesEra: boolean): GuessClue {
+  if (guessYear === answerYear) return { text: "Same year", shared: sharesEra, direction: "same" };
+  const direction = answerYear > guessYear ? "later" : "earlier";
+  const decade = decadeOf(answerYear);
+  const text =
+    decadeOf(guessYear) === decade
+      ? `${direction === "later" ? "Later" : "Earlier"} in the ${decade}s`
+      : `${direction === "later" ? "A later" : "An earlier"} decade`;
+  return { text, shared: sharesEra, direction };
+}
+
+/** A guess's clues with the year chip first, in place of the era clue. */
+export function guessClues(work: DailyGameWork, answerYear: number | undefined): GuessClue[] {
+  if (work.rank === 1 || !isDefined(work.year) || !isDefined(answerYear)) return work.clues;
+  const others = work.clues.filter((clue) => !isTrue(clue.era));
+  return [yearClue(work.year, answerYear, others.length < work.clues.length), ...others];
 }
 
 const TEMPERATURES = ["hot", "warm", "cold"] as const;

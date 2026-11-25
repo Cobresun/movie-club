@@ -125,6 +125,17 @@ describe("GET /api/daily-game/:clubType/:date", () => {
     );
   });
 
+  it("sends a thumbnail of each movie's poster", async () => {
+    await seedCatalog(12);
+
+    const { works: movies } = (await api.get<DailyGamePuzzle>(`/api/daily-game/movie/${TODAY}`))
+      .body;
+
+    expect(movies.find((movie) => movie.id === "105")?.imageUrl).toBe(
+      "https://image.tmdb.org/t/p/w92/poster-105.jpg",
+    );
+  });
+
   it("ranks the answer's closest relative second, and says why", async () => {
     await seedCatalog(12);
 

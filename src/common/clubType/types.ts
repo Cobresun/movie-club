@@ -185,6 +185,8 @@ export interface DailyGameConfig {
 export interface DailyGamePreview {
   /** How many works the sample puzzle ranks, which sets each guess's temperature. */
   readonly poolSize: number;
+  /** The sample answer's year, which the guesses' year chips point to. */
+  readonly answerYear: number;
   /** Closest first. */
   readonly guesses: readonly DailyGameWork[];
 }

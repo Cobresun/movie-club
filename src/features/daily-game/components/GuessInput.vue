@@ -48,14 +48,22 @@
           :key="work.id"
           role="option"
           :aria-selected="index === activeIndex"
-          class="cursor-pointer px-3.5 py-2.5"
+          class="flex cursor-pointer items-center gap-3 px-3.5 py-1.5"
           :class="{ 'bg-primary/40': index === activeIndex }"
           @mousedown.prevent
           @click="pick(index)"
           @mouseenter="activeIndex = index"
         >
-          {{ work.title }}
-          <span v-if="isDefined(work.year)" class="text-white/60">({{ work.year }})</span>
+          <img
+            v-if="hasValue(work.imageUrl)"
+            :src="work.imageUrl"
+            alt=""
+            class="bg-background/40 h-9 w-6 shrink-0 rounded-xs object-cover"
+          />
+          <span>
+            {{ work.title }}
+            <span v-if="isDefined(work.year)" class="text-white/60">({{ work.year }})</span>
+          </span>
         </li>
       </ul>
     </transition>
@@ -68,7 +76,7 @@
 <script setup lang="ts">
 import { computed, ref, useId, useTemplateRef, watch } from "vue";
 
-import { hasElements, isDefined } from "@/../lib/checks/checks";
+import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
 import { type DailyGameWork } from "@/../lib/types/dailyGame";
 import { searchPool } from "@/features/daily-game/game";
 

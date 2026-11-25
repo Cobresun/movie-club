@@ -1,4 +1,12 @@
-import { hintRank, localDate, previousDate, shareText, temperature } from "../game";
+import {
+  guessClues,
+  hintRank,
+  localDate,
+  previousDate,
+  shareText,
+  temperature,
+  yearClue,
+} from "../game";
 
 describe("hintRank", () => {
   it("halves the distance from the best guess to the answer", () => {
@@ -13,6 +21,63 @@ describe("hintRank", () => {
   it("never gives away the answer", () => {
     expect(hintRank(new Set([2]), 400)).toBeUndefined();
     expect(hintRank(new Set([3, 2]), 400)).toBeUndefined();
+  });
+});
+
+describe("yearClue", () => {
+  it("names the decade when the guess shares it", () => {
+    expect(yearClue(2010, 2013, true)).toStrictEqual({
+      text: "Later in the 2010s",
+      shared: true,
+      direction: "later",
+    });
+    expect(yearClue(2014, 2013, true).text).toBe("Earlier in the 2010s");
+  });
+
+  it("points across decades without naming the answer's", () => {
+    expect(yearClue(2009, 2011, false)).toStrictEqual({
+      text: "A later decade",
+      shared: false,
+      direction: "later",
+    });
+    expect(yearClue(2020, 2013, false).text).toBe("An earlier decade");
+  });
+
+  it("calls the same year out", () => {
+    expect(yearClue(2013, 2013, true)).toStrictEqual({
+      text: "Same year",
+      shared: true,
+      direction: "same",
+    });
+  });
+
+  it("only counts the decade as shared when the guess was given that clue", () => {
+    expect(yearClue(2012, 2013, false).shared).toBe(false);
+  });
+});
+
+describe("guessClues", () => {
+  const work = {
+    id: "1",
+    title: "Guess",
+    year: 2010,
+    rank: 5,
+    clues: [
+      { text: "Drama", shared: true },
+      { text: "Also from the 2010s", shared: true, era: true },
+    ],
+  };
+
+  it("puts the year chip first, in place of the era clue", () => {
+    expect(guessClues(work, 2013).map((clue) => clue.text)).toStrictEqual([
+      "Later in the 2010s",
+      "Drama",
+    ]);
+  });
+
+  it("leaves the clues as sent without a year to compare", () => {
+    expect(guessClues({ ...work, year: undefined }, 2013)).toStrictEqual(work.clues);
+    expect(guessClues(work, undefined)).toStrictEqual(work.clues);
   });
 });
 

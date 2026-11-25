@@ -25,50 +25,69 @@
       aria-hidden="true"
       class="shine absolute inset-y-0 left-0 w-1/2 bg-linear-to-r from-transparent via-white/25 to-transparent"
     />
-    <div class="relative flex flex-col gap-1.5 px-3 py-2 text-left">
-      <div class="flex items-baseline justify-between gap-3">
-        <p :id="titleId" class="min-w-0 font-semibold">
-          {{ guess.work.title }}
-          <span v-if="isDefined(guess.work.year)" class="font-normal text-white/60"
-            >({{ guess.work.year }})</span
-          >
-          <span
-            v-if="guess.hint"
-            class="bg-highlight/20 text-highlight ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-medium"
-          >
-            Hint
-          </span>
-          <span
-            v-if="closestYet"
-            class="ml-1 inline-block rounded bg-green-600/30 px-1.5 py-0.5 text-xs font-medium text-green-300"
-            :class="{ 'chip-pop': arrival === 'featured' }"
-          >
-            Closest yet
-          </span>
-        </p>
-        <p class="shrink-0 text-right whitespace-nowrap">
-          <span class="text-xs tracking-wide text-white/60 uppercase">{{ temperatureLabel }}</span>
-          <span
-            class="ml-2 inline-block text-lg font-bold"
-            :class="{ 'rank-land': arrival === 'featured' }"
-            >#{{ guess.work.rank }}</span
-          >
-        </p>
-      </div>
-      <ul
-        v-if="hasElements(guess.work.clues)"
-        :aria-label="`How ${guess.work.title} compares with the answer`"
-        class="flex flex-wrap gap-1.5"
-      >
-        <li
-          v-for="clue in guess.work.clues"
-          :key="clue.text"
-          class="rounded-full px-2 py-0.5 text-xs"
-          :class="clue.shared ? 'bg-background/70 text-white/80' : 'bg-background/30 text-white/50'"
+    <div class="relative flex gap-3 px-3 py-2 text-left">
+      <img
+        v-if="hasValue(guess.work.imageUrl)"
+        :src="guess.work.imageUrl"
+        alt=""
+        loading="lazy"
+        class="bg-background/40 h-15 w-10 shrink-0 rounded-sm object-cover"
+      />
+      <div class="flex min-w-0 grow flex-col gap-1.5">
+        <div class="flex items-baseline justify-between gap-3">
+          <p :id="titleId" class="min-w-0 font-semibold">
+            {{ guess.work.title }}
+            <span v-if="isDefined(guess.work.year)" class="font-normal text-white/60"
+              >({{ guess.work.year }})</span
+            >
+            <span
+              v-if="guess.hint"
+              class="bg-highlight/20 text-highlight ml-1 inline-block rounded px-1.5 py-0.5 text-xs font-medium"
+            >
+              Hint
+            </span>
+            <span
+              v-if="closestYet"
+              class="ml-1 inline-block rounded bg-green-600/30 px-1.5 py-0.5 text-xs font-medium text-green-300"
+              :class="{ 'chip-pop': arrival === 'featured' }"
+            >
+              Closest yet
+            </span>
+          </p>
+          <p class="shrink-0 text-right whitespace-nowrap">
+            <span class="text-xs tracking-wide text-white/60 uppercase">{{
+              temperatureLabel
+            }}</span>
+            <span
+              class="ml-2 inline-block text-lg font-bold"
+              :class="{ 'rank-land': arrival === 'featured' }"
+              >#{{ guess.work.rank }}</span
+            >
+          </p>
+        </div>
+        <ul
+          v-if="hasElements(guess.clues)"
+          :aria-label="`How ${guess.work.title} compares with the answer`"
+          class="flex flex-wrap gap-1.5"
         >
-          {{ clue.text }}
-        </li>
-      </ul>
+          <li
+            v-for="clue in guess.clues"
+            :key="clue.text"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs"
+            :class="
+              clue.shared ? 'bg-background/70 text-white/80' : 'bg-background/30 text-white/50'
+            "
+          >
+            <mdicon
+              v-if="isDefined(clue.direction)"
+              :name="DIRECTION_ICONS[clue.direction]"
+              :size="14"
+              aria-hidden="true"
+            />
+            {{ clue.text }}
+          </li>
+        </ul>
+      </div>
     </div>
   </li>
 </template>
@@ -76,8 +95,8 @@
 <script setup lang="ts">
 import { computed, useId, useTemplateRef, watch } from "vue";
 
-import { hasElements, isDefined } from "@/../lib/checks/checks";
-import { type Temperature } from "@/features/daily-game/game";
+import { hasElements, hasValue, isDefined } from "@/../lib/checks/checks";
+import { type Temperature, type YearDirection } from "@/features/daily-game/game";
 import { type RankedGuess } from "@/features/daily-game/useDailyGame";
 
 const {
@@ -103,6 +122,12 @@ const TEMPERATURE_LABELS: Record<Temperature, string> = {
   hot: "Hot",
   warm: "Warm",
   cold: "Cold",
+};
+
+const DIRECTION_ICONS: Record<YearDirection, string> = {
+  later: "arrow-up",
+  earlier: "arrow-down",
+  same: "calendar-check-outline",
 };
 
 const temperatureLabel = computed(() =>

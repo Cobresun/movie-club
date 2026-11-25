@@ -1,4 +1,4 @@
-import { isDefined } from "../../../../lib/checks/checks.js";
+import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import { type PoolWork, rankPool } from "../../../../lib/dailyGame.js";
 import { type MovieGameData, movieDailyGameRules } from "../../../../lib/movie/dailyGame.js";
 import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCast.js";
@@ -7,6 +7,9 @@ import { topWorkIds } from "../dailyGame";
 import { db } from "../database";
 import { getTMDBMostRated } from "../tmdb";
 import { type DailyGame } from "./types";
+
+// Thumbnail-sized: the board shows posters a few dozen pixels wide.
+const POSTER_BASE = "https://image.tmdb.org/t/p/w92";
 
 // 50 pages of 20: the 1000 most-rated. Any catalogued movie can be guessed,
 // but the answer should be one most players have seen.
@@ -44,6 +47,7 @@ async function loadMovies(): Promise<PoolWork<MovieGameData>[]> {
         "daily_game_catalog.title",
         "movie_details.release_date",
         "movie_details.original_language",
+        "movie_details.poster_path",
       ])
       .where("daily_game_catalog.work_type", "=", WorkType.MOVIE)
       .where("movie_details.overview", "is not", null)
@@ -89,6 +93,7 @@ async function loadMovies(): Promise<PoolWork<MovieGameData>[]> {
   return details.map((row) => ({
     id: row.external_id,
     title: row.title,
+    imageUrl: hasValue(row.poster_path) ? `${POSTER_BASE}${row.poster_path}` : undefined,
     data: {
       directors: (directorsById.get(row.external_id) ?? []).map((name) => ({ name })),
       majorCastNames: castById.get(row.external_id) ?? [],

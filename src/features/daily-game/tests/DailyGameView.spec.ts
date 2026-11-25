@@ -133,7 +133,28 @@ describe("DailyGameView", () => {
       within(clues)
         .getAllByRole("listitem")
         .map((clue) => clue.textContent.trim()),
-    ).toStrictEqual(["Same director: Michael Mann", "Crime", "Drama", "Not Thriller"]);
+    ).toStrictEqual([
+      "An earlier decade",
+      "Same director: Michael Mann",
+      "Crime",
+      "Drama",
+      "Not Thriller",
+    ]);
+  });
+
+  it("points each guess to the answer's year, folding in a shared decade", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Point Break");
+    await guess(user, "The Insider");
+    await guess(user, "Casino");
+    await guess(user, "The Dark Knight");
+
+    expect(within(row("Point Break")).getByText("Later in the 1990s")).toBeInTheDocument();
+    expect(within(row("The Insider")).getByText("Earlier in the 1990s")).toBeInTheDocument();
+    expect(within(row("Casino")).getByText("Same year")).toBeInTheDocument();
+    expect(within(row("The Dark Knight")).getByText("An earlier decade")).toBeInTheDocument();
+    expect(within(guessList()).queryByText("Also from the 1990s")).not.toBeInTheDocument();
   });
 
   it("only offers movies that match what was typed", async () => {

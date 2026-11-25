@@ -27,7 +27,7 @@ const PACINO_AND_DE_NIRO = clue("Also stars Al Pacino, Robert De Niro");
 const ACTION = clue("Action");
 const CRIME = clue("Crime");
 const DRAMA = clue("Drama");
-const NINETIES = clue("Also from the 1990s");
+const NINETIES: DailyGameClue = { ...clue("Also from the 1990s"), era: true };
 const not = (...genres: string[]): DailyGameClue => ({
   text: `Not ${genres.join(", ")}`,
   shared: false,

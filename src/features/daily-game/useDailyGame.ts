@@ -1,7 +1,16 @@
 import { computed, ref, watch } from "vue";
 import { z } from "zod";
 
-import { hintRank, nextDate, previousDate, shareText, temperature, type Temperature } from "./game";
+import {
+  type GuessClue,
+  guessClues,
+  hintRank,
+  nextDate,
+  previousDate,
+  shareText,
+  temperature,
+  type Temperature,
+} from "./game";
 import { hasElements, isDefined, isTrue } from "@/../lib/checks/checks";
 import { type DailyGamePuzzle, type DailyGameWork } from "@/../lib/types/dailyGame";
 import { type ClubType } from "@/../lib/types/generated/db";
@@ -51,14 +60,21 @@ export interface RankedGuess {
   /** 1 for the answer, falling to 0 for the least alike work in the pool. */
   closeness: number;
   hint: boolean;
+  clues: GuessClue[];
 }
 
-export function rankGuess(work: DailyGameWork, poolSize: number, hint: boolean): RankedGuess {
+export function rankGuess(
+  work: DailyGameWork,
+  poolSize: number,
+  hint: boolean,
+  answerYear: number | undefined,
+): RankedGuess {
   return {
     work,
     temperature: temperature(work.rank, poolSize),
     closeness: poolSize < 2 ? 1 : 1 - (work.rank - 1) / (poolSize - 1),
     hint,
+    clues: guessClues(work, answerYear),
   };
 }
 
@@ -107,7 +123,7 @@ export function useDailyGame(puzzle: DailyGamePuzzle, name: string, today: strin
 
   const toGuess = (id: string, hint: boolean): RankedGuess | undefined => {
     const work = worksById.get(id);
-    return isDefined(work) ? rankGuess(work, poolSize, hint) : undefined;
+    return isDefined(work) ? rankGuess(work, poolSize, hint, answer?.year) : undefined;
   };
 
   const guesses = computed(() =>

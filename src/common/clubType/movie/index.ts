@@ -120,6 +120,7 @@ export const movieClubConfig: ClubTypeConfig = {
       "A guess ranks by its clues: a shared director counts most, then shared stars, then a shared studio (the big ones don't count), genre, language or decade, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one released nearer the answer ranks higher.",
     preview: {
       poolSize: 3000,
+      answerYear: 2017,
       guesses: [
         {
           id: "329865",
@@ -130,7 +131,7 @@ export const movieClubConfig: ClubTypeConfig = {
             { text: "Same director: Denis Villeneuve", shared: true },
             { text: "Drama", shared: true },
             { text: "Science Fiction", shared: true },
-            { text: "Also from the 2010s", shared: true },
+            { text: "Also from the 2010s", shared: true, era: true },
             { text: "Not Mystery", shared: false },
           ],
         },
@@ -141,7 +142,7 @@ export const movieClubConfig: ClubTypeConfig = {
           rank: 8,
           clues: [
             { text: "Same director: Denis Villeneuve", shared: true },
-            { text: "Also from the 2010s", shared: true },
+            { text: "Also from the 2010s", shared: true, era: true },
             { text: "Not Action, Crime, Thriller", shared: false },
           ],
         },
@@ -153,7 +154,7 @@ export const movieClubConfig: ClubTypeConfig = {
           clues: [
             { text: "Science Fiction", shared: true },
             { text: "Drama", shared: true },
-            { text: "Also from the 2010s", shared: true },
+            { text: "Also from the 2010s", shared: true, era: true },
             { text: "Not Romance", shared: false },
           ],
         },

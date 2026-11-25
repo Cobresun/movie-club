@@ -5,6 +5,8 @@ export interface DailyGameClue {
   text: string;
   /** True for something the guess shares with the answer, false where it differs. */
   shared: boolean;
+  /** Marks the clue about when the work came out, which the board folds into its year chip. */
+  era?: boolean;
 }
 
 /** One work in a day's daily-game pool, ranked against that day's answer. */
@@ -13,6 +15,8 @@ export interface DailyGameWork {
   id: string;
   title: string;
   year?: number;
+  /** A small poster or cover, sized for a thumbnail. */
+  imageUrl?: string;
   /** 1 for the answer, up to the pool size for the least alike work. */
   rank: number;
   /**
