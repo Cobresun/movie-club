@@ -138,7 +138,8 @@
           @click="takeHint"
         >
           <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight" />
-          Hint
+          <!-- Poppins sits high in its line box; a pixel down centres it on the bulb. -->
+          <span class="translate-y-px">Hint</span>
         </button>
       </GuessInput>
       <p v-if="hasValue(notice)" role="status" class="text-highlight -mt-3 text-sm">
@@ -163,6 +164,19 @@
           :nudge="nudgeFor(spotlight.work.id)"
         />
       </ul>
+      <div
+        v-if="offerHint"
+        class="bg-lowBackground animate-fade-up mt-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/80"
+      >
+        <mdicon name="lightbulb-on-outline" :size="20" class="text-highlight shrink-0" />
+        <p class="grow">Three cold in a row.</p>
+        <button
+          class="text-highlight shrink-0 rounded px-1 font-semibold hover:underline"
+          @click="takeHint"
+        >
+          Get a hint
+        </button>
+      </div>
     </section>
 
     <section v-if="hasElements(game.guesses.value)" aria-labelledby="daily-game-guesses">
@@ -346,6 +360,19 @@ const listArrival = (guess: RankedGuess) => {
   if (guess.work.id !== freshId.value) return "none";
   return isDefined(spotlight.value) ? "quiet" : "featured";
 };
+
+// The Hint button is always there, but a player on a cold run is the one
+// most likely to want it, so the spotlight offers it once they're stuck.
+const STUCK_AFTER_COLD_GUESSES = 3; // Matches "Three" in the offer.
+
+const offerHint = computed(() => {
+  const recent = game.guesses.value.slice(-STUCK_AFTER_COLD_GUESSES);
+  return (
+    game.canHint.value &&
+    recent.length === STUCK_AFTER_COLD_GUESSES &&
+    recent.every((guess) => !guess.hint && guess.temperature === "cold")
+  );
+});
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 

@@ -290,6 +290,20 @@ describe("DailyGameView", () => {
     expect(within(row("The Godfather")).getByText("#6")).toBeInTheDocument();
   });
 
+  it("offers a hint to a player on a cold run", async () => {
+    const { user } = await renderGame();
+
+    await guess(user, "Alien");
+    await guess(user, "Toy Story");
+    expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
+
+    await guess(user, "Jaws");
+    await user.click(screen.getByRole("button", { name: "Get a hint" }));
+
+    expect(within(row("The Godfather")).getByText("Hint")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Get a hint" })).not.toBeInTheDocument();
+  });
+
   it("counts hints apart from guesses", async () => {
     const { user } = await renderGame();
 
