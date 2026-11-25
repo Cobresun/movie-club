@@ -48,27 +48,15 @@
             </template>
           </div>
 
-          <!-- Editing mode -->
-          <div v-if="editingCommentId === comment.id" class="mt-2">
-            <textarea
-              v-model="editContent"
-              :maxlength="MAX_LENGTH"
-              class="bg-background focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
-              rows="3"
-            />
-            <div class="mt-2 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <label class="flex items-center gap-1.5 text-xs text-gray-400">
-                  <input v-model="editSpoiler" type="checkbox" class="accent-primary" />
-                  Spoiler
-                </label>
-                <span
-                  class="text-xs"
-                  :class="editContent.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
-                >
-                  {{ editContent.length }}/{{ MAX_LENGTH }}
-                </span>
-              </div>
+          <CommentComposer
+            v-if="editingCommentId === comment.id"
+            v-model:content="editContent"
+            v-model:spoiler="editSpoiler"
+            v-model:gif-id="editGifId"
+            nested
+            class="mt-2"
+          >
+            <template #default="{ canSubmit }">
               <div class="flex gap-2">
                 <button
                   class="rounded bg-gray-600 px-3 py-1 text-xs text-white"
@@ -78,29 +66,33 @@
                 </button>
                 <button
                   class="bg-primary rounded px-3 py-1 text-xs text-white"
-                  :disabled="!hasValue(editContent.trim()) || editContent.length > MAX_LENGTH"
+                  :disabled="!canSubmit"
                   @click="saveEdit(comment.id)"
                 >
                   Save
                 </button>
               </div>
-            </div>
-          </div>
+            </template>
+          </CommentComposer>
 
-          <!-- Display mode -->
-          <div v-else class="mt-2">
-            <!-- `blur-xs` is a purely visual filter, so while hidden it also
+          <!-- `blur-xs` is a purely visual filter, so while hidden it also
                carries aria-hidden: without it the spoiler is read out in full
                to a screen reader that cannot see the blur. One element for
                both states, so the blur can transition away. -->
+          <div
+            v-else
+            :aria-hidden="isSpoilerHidden(comment) || undefined"
+            class="duration-slow ease-standard mt-2 space-y-2 transition-[filter]"
+            :class="isSpoilerHidden(comment) ? 'cursor-pointer blur-xs select-none' : 'blur-none'"
+            @click="revealedSpoilers.add(comment.id)"
+          >
             <p
-              :aria-hidden="isSpoilerHidden(comment) || undefined"
-              class="duration-slow ease-standard text-left text-sm whitespace-pre-wrap text-gray-200 transition-[filter]"
-              :class="isSpoilerHidden(comment) ? 'cursor-pointer blur-xs select-none' : 'blur-none'"
-              @click="revealedSpoilers.add(comment.id)"
+              v-if="hasValue(comment.content)"
+              class="text-left text-sm whitespace-pre-wrap text-gray-200"
             >
               {{ comment.content }}
             </p>
+            <CommentGif v-if="isDefined(comment.gifId)" :gif-id="comment.gifId" />
           </div>
         </div>
       </TransitionGroup>
@@ -110,44 +102,29 @@
       No comments yet. Be the first to share your thoughts!
     </p>
 
-    <div>
-      <textarea
-        v-model="newComment"
-        :maxlength="MAX_LENGTH"
-        placeholder="Write a comment…"
-        class="bg-lowBackground focus:border-primary focus:ring-primary w-full resize-none rounded-lg border border-gray-600 px-3 py-2 text-left text-base text-white placeholder-gray-400 focus:ring-1 focus:outline-hidden md:text-sm"
-        rows="3"
-      />
-      <div class="mt-2 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <label class="flex items-center gap-1.5 text-xs text-gray-400">
-            <input v-model="newSpoiler" type="checkbox" class="accent-primary" />
-            Spoiler
-          </label>
-          <span
-            class="text-xs"
-            :class="newComment.length > MAX_LENGTH * 0.9 ? 'text-red-400' : 'text-gray-500'"
-          >
-            {{ newComment.length }}/{{ MAX_LENGTH }}
-          </span>
-        </div>
-        <v-btn
-          aria-label="Send comment"
-          :disabled="!hasValue(newComment.trim()) || newComment.length > MAX_LENGTH"
-          @click="sendComment"
-        >
+    <CommentComposer
+      v-model:content="newComment"
+      v-model:spoiler="newSpoiler"
+      v-model:gif-id="newGifId"
+      placeholder="Write a comment…"
+    >
+      <template #default="{ canSubmit }">
+        <v-btn aria-label="Send comment" :disabled="!canSubmit" @click="sendComment">
           <mdicon name="send" :size="18" />
         </v-btn>
-      </div>
-    </div>
+      </template>
+    </CommentComposer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
 
-import { hasElements, hasValue } from "../../../lib/checks/checks.js";
+import { hasElements, hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { hasTextOrGif } from "../../../lib/comments";
 import { WorkCommentDto } from "../../../lib/types/lists";
+import CommentComposer from "@/common/components/CommentComposer.vue";
+import CommentGif from "@/common/components/CommentGif.vue";
 import DeleteConfirmationModal from "@/common/components/DeleteConfirmationModal.vue";
 import SectionHeader from "@/common/components/SectionHeader.vue";
 import { relativeTime } from "@/common/dates";
@@ -158,8 +135,6 @@ import {
   useReviewComments,
 } from "@/service/useReviews";
 import { useUser } from "@/service/useUser";
-
-const MAX_LENGTH = 2000;
 
 const props = defineProps<{
   workId: string;
@@ -179,11 +154,13 @@ const { mutate: removeComment } = useDeleteReviewComment(props.clubSlug, props.w
 
 const newComment = ref("");
 const newSpoiler = ref(false);
+const newGifId = ref<string>();
 const commentsContainer = ref<HTMLDivElement | null>(null);
 
 const editingCommentId = ref<string | null>(null);
 const editContent = ref("");
 const editSpoiler = ref(false);
+const editGifId = ref<string>();
 
 const revealedSpoilers = reactive(new Set<string>());
 
@@ -211,29 +188,34 @@ watch(
 
 const sendComment = () => {
   const content = newComment.value.trim();
-  if (!hasValue(content)) return;
+  const gifId = newGifId.value;
+  if (!hasTextOrGif({ content, gifId })) return;
   scrollToLatestPending.value = true;
-  addComment({ content, spoiler: newSpoiler.value });
+  addComment({ content, gifId, spoiler: newSpoiler.value });
   newComment.value = "";
   newSpoiler.value = false;
+  newGifId.value = undefined;
 };
 
 const startEditing = (comment: WorkCommentDto) => {
   editingCommentId.value = comment.id;
   editContent.value = comment.content;
   editSpoiler.value = comment.spoiler;
+  editGifId.value = comment.gifId;
 };
 
 const cancelEditing = () => {
   editingCommentId.value = null;
   editContent.value = "";
   editSpoiler.value = false;
+  editGifId.value = undefined;
 };
 
 const saveEdit = (commentId: string) => {
   const content = editContent.value.trim();
-  if (!hasValue(content)) return;
-  editComment({ commentId, content, spoiler: editSpoiler.value });
+  const gifId = editGifId.value;
+  if (!hasTextOrGif({ content, gifId })) return;
+  editComment({ commentId, content, gifId, spoiler: editSpoiler.value });
   cancelEditing();
 };
 

@@ -15,6 +15,7 @@ class WorkCommentRepository {
         "user.name as user_name",
         "user.image as user_image",
         "work_comment.content",
+        "work_comment.gif_id",
         "work_comment.created_date",
         "work_comment.spoiler",
       ])
@@ -28,12 +29,20 @@ class WorkCommentRepository {
       userName: row.user_name,
       userImage: row.user_image ?? undefined,
       content: row.content,
+      gifId: row.gif_id ?? undefined,
       createdDate: new Date(String(row.created_date)).toISOString(),
       spoiler: row.spoiler,
     }));
   }
 
-  insert(workId: string, clubId: string, userId: string, content: string, spoiler: boolean) {
+  insert(
+    workId: string,
+    clubId: string,
+    userId: string,
+    content: string,
+    gifId: string | undefined,
+    spoiler: boolean,
+  ) {
     return db
       .insertInto("work_comment")
       .values({
@@ -41,15 +50,22 @@ class WorkCommentRepository {
         club_id: clubId,
         user_id: userId,
         content,
+        gif_id: gifId ?? null,
         spoiler,
       })
       .execute();
   }
 
-  updateContent(commentId: string, userId: string, content: string, spoiler?: boolean) {
+  updateContent(
+    commentId: string,
+    userId: string,
+    content: string,
+    gifId: string | undefined,
+    spoiler?: boolean,
+  ) {
     let query = db
       .updateTable("work_comment")
-      .set("content", content)
+      .set({ content, gif_id: gifId ?? null })
       .where("id", "=", commentId)
       .where("user_id", "=", userId);
     if (spoiler !== undefined) {

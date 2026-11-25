@@ -10,6 +10,7 @@ declare module "*.vue" {
 declare const __BUILD_ID__: string;
 
 interface ImportMetaEnv {
+  VITE_GIPHY_API_KEY: string;
   VITE_GOOGLE_BOOKS_API_KEY: string;
   VITE_TMDB_API_KEY: string;
 }

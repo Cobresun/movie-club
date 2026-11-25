@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { hasValue, isDefined } from "../../../lib/checks/checks.js";
+import { addCommentSchema, updateCommentSchema } from "../../../lib/comments.js";
 import {
   type DiscussionQuestionsResponse,
   type ReviewScores,
@@ -136,11 +137,6 @@ router.delete(`/:reviewId`, secured, async ({ clubId, userId, params }, res) => 
 
 // Comment endpoints
 
-const addCommentSchema = z.object({
-  content: z.string().min(1).max(2000),
-  spoiler: z.boolean().optional().default(false),
-});
-
 router.get("/:workId/comments", secured, async ({ clubId, params }, res) => {
   const workId = requireParam(params, "workId", res);
   if (isRouterResponse(workId)) return workId;
@@ -154,13 +150,15 @@ router.post("/:workId/comments", secured, async ({ clubId, userId, params, event
   const body = parseBody(event, addCommentSchema, res);
   if (isRouterResponse(body)) return body;
 
-  await WorkCommentRepository.insert(workId, clubId, userId, body.content, body.spoiler);
+  await WorkCommentRepository.insert(
+    workId,
+    clubId,
+    userId,
+    body.content,
+    body.gifId,
+    body.spoiler,
+  );
   return res(ok());
-});
-
-const updateCommentSchema = z.object({
-  content: z.string().min(1).max(2000),
-  spoiler: z.boolean().optional(),
 });
 
 router.put("/:workId/comments/:commentId", secured, async ({ userId, params, event }, res) => {
@@ -179,7 +177,13 @@ router.put("/:workId/comments/:commentId", secured, async ({ userId, params, eve
     return res(unauthorized("You can only edit your own comments"));
   }
 
-  await WorkCommentRepository.updateContent(commentId, userId, body.content, body.spoiler);
+  await WorkCommentRepository.updateContent(
+    commentId,
+    userId,
+    body.content,
+    body.gifId,
+    body.spoiler,
+  );
   return res(ok());
 });
 

@@ -359,6 +359,7 @@ export interface WorkComment {
   club_id: Int8;
   content: string;
   created_date: Generated<Timestamp>;
+  gif_id: string | null;
   id: Generated<Int8>;
   spoiler: Generated<boolean>;
   user_id: Int8;

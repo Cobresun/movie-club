@@ -5,6 +5,7 @@ import { type WorkCommentDto } from "../../lib/types/lists";
 
 const commentPayloadSchema = z.object({
   content: z.string(),
+  gifId: z.string().optional(),
   spoiler: z.boolean(),
 });
 
@@ -30,14 +31,14 @@ export const commentsApi = (initial: WorkCommentDto[] = []) => {
   return [
     http.get(base, () => HttpResponse.json<WorkCommentDto[]>(thread)),
     http.post(base, async ({ request }) => {
-      const { content, spoiler } = commentPayloadSchema.parse(await request.json());
-      thread = [...thread, comment({ id: `c-${thread.length + 1}`, content, spoiler })];
+      const { content, gifId, spoiler } = commentPayloadSchema.parse(await request.json());
+      thread = [...thread, comment({ id: `c-${thread.length + 1}`, content, gifId, spoiler })];
       return HttpResponse.json({});
     }),
     http.put(`${base}/:commentId`, async ({ request, params }) => {
-      const { content, spoiler } = commentPayloadSchema.parse(await request.json());
+      const { content, gifId, spoiler } = commentPayloadSchema.parse(await request.json());
       thread = thread.map((existing) =>
-        existing.id === params.commentId ? { ...existing, content, spoiler } : existing,
+        existing.id === params.commentId ? { ...existing, content, gifId, spoiler } : existing,
       );
       return HttpResponse.json({});
     }),

@@ -324,12 +324,21 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
   const user = useUser();
 
   return useMutation({
-    mutationFn: ({ content, spoiler }: { content: string; spoiler: boolean }) =>
+    mutationFn: ({
+      content,
+      gifId,
+      spoiler,
+    }: {
+      content: string;
+      gifId?: string;
+      spoiler: boolean;
+    }) =>
       auth.request.post(`/api/club/${clubSlug}/reviews/${workId}/comments`, {
         content,
+        gifId,
         spoiler,
       }),
-    onMutate: async ({ content, spoiler }) => {
+    onMutate: async ({ content, gifId, spoiler }) => {
       const currentUser = user.value;
       if (!isDefined(currentUser)) return;
       await queryClient.cancelQueries({ queryKey: ["comments", clubSlug, workId] });
@@ -342,6 +351,7 @@ export function useAddReviewComment(clubSlug: string, workId: string) {
           userName: currentUser.name,
           userImage: currentUser.image ?? undefined,
           content,
+          gifId,
           createdDate: new Date().toISOString(),
           spoiler,
         },
@@ -362,17 +372,20 @@ export function useEditReviewComment(clubSlug: string, workId: string) {
     mutationFn: ({
       commentId,
       content,
+      gifId,
       spoiler,
     }: {
       commentId: string;
       content: string;
+      gifId?: string;
       spoiler?: boolean;
     }) =>
       auth.request.put(`/api/club/${clubSlug}/reviews/${workId}/comments/${commentId}`, {
         content,
+        gifId,
         spoiler,
       }),
-    onMutate: async ({ commentId, content, spoiler }) => {
+    onMutate: async ({ commentId, content, gifId, spoiler }) => {
       await queryClient.cancelQueries({ queryKey: ["comments", clubSlug, workId] });
       queryClient.setQueryData<WorkCommentDto[]>(
         ["comments", clubSlug, workId],
@@ -382,6 +395,7 @@ export function useEditReviewComment(clubSlug: string, workId: string) {
               ? {
                   ...comment,
                   content,
+                  gifId,
                   spoiler: spoiler ?? comment.spoiler,
                 }
               : comment,

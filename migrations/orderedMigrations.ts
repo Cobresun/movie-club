@@ -28,6 +28,7 @@ import DropClubLegacyId from "./schema/20260720_DropClubLegacyId.js";
 import AddActorPopularity from "./schema/20260721_AddActorPopularity.js";
 import AddObservability from "./schema/20260729_AddObservability.js";
 import RekeyAwardsCaseInsensitiveNames from "./schema/20261019_RekeyAwardsCaseInsensitiveNames.js";
+import AddCommentGif from "./schema/AddCommentGif.js";
 import AddDailyGame from "./schema/AddDailyGame.js";
 import AddDailyGameResult from "./schema/AddDailyGameResult.js";
 import AddTvClubType from "./schema/AddTvClubType.js";
@@ -100,4 +101,5 @@ export const orderedMigrations: NamedMigration[] = [
   IndexReviewAndCommentLookups,
   RekeyCredentialAccountIds,
   IndexMovieCastLookups,
+  AddCommentGif,
 ];

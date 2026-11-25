@@ -397,9 +397,26 @@ describe("comments on a reviewed work", () => {
     expect(comments.body[0].spoiler).toBe(false);
   });
 
+  it("adds a comment that is only a GIF", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+
+    const res = await api.post(`/api/club/${club.slug}/reviews/${work.id}/comments`, {
+      body: { content: "", gifId: "xT9IgG50Fb7Mi0prBC" },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const comments = await commentsOn(club, work.id, alice);
+    expect(comments.body[0]).toMatchObject({ content: "", gifId: "xT9IgG50Fb7Mi0prBC" });
+  });
+
   it.each([
     ["empty content", { content: "" }],
+    ["whitespace and no GIF", { content: "   " }],
     ["content over 2000 characters", { content: "x".repeat(2001) }],
+    ["a GIF id that carries a path", { content: "", gifId: "../../evil.gif" }],
     ["no body", undefined],
   ])("returns 400 for %s", async (_label, body) => {
     const alice = await signIn("alice");
@@ -429,6 +446,27 @@ describe("comments on a reviewed work", () => {
     expect(res.statusCode).toBe(200);
     const comments = await commentsOn(club, work.id, alice);
     expect(comments.body[0]).toMatchObject({ content: "Fixed", spoiler: true });
+  });
+
+  it("removes the GIF when an edit leaves it out", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const work = await addReviewedWork(club, alice, { externalId: null });
+    await api.post(`/api/club/${club.slug}/reviews/${work.id}/comments`, {
+      body: { content: "Look", gifId: "xT9IgG50Fb7Mi0prBC" },
+      as: alice,
+    });
+    const [added] = (await commentsOn(club, work.id, alice)).body;
+
+    const res = await api.put(`/api/club/${club.slug}/reviews/${work.id}/comments/${added.id}`, {
+      body: { content: "Look" },
+      as: alice,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const [edited] = (await commentsOn(club, work.id, alice)).body;
+    expect(edited.content).toBe("Look");
+    expect(edited.gifId).toBeUndefined();
   });
 
   it("returns 401 when editing someone else's comment", async () => {
