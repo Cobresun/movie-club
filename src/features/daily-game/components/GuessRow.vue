@@ -73,7 +73,7 @@
           <li
             v-for="clue in guess.clues"
             :key="clue.text"
-            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs"
             :class="
               clue.shared ? 'bg-background/70 text-white/80' : 'bg-background/30 text-white/50'
             "
