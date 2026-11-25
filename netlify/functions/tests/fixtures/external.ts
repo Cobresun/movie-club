@@ -39,6 +39,7 @@ export function tmdbMovie(id: number, overrides: Partial<TMDBMovieData> = {}): T
   return {
     adult: false,
     backdrop_path: `/backdrop-${id}.jpg`,
+    belongs_to_collection: null,
     budget: 1000 * id,
     credits: {
       cast: [

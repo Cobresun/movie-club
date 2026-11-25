@@ -197,4 +197,25 @@ describe("movie daily-game clues", () => {
     ]);
     expect(cluesOf(ranking, "Year before")).toStrictEqual([]);
   });
+
+  it("ranks a sequel by another director above a movie that shares the lead", () => {
+    const starWars = { id: 10, name: "Star Wars Collection" };
+    const ranking = rank({
+      "Star Wars": film({ collection: starWars, majorCastNames: ["Harrison Ford"] }),
+      "Indiana Jones": film({ majorCastNames: ["Harrison Ford"] }),
+      "The Empire Strikes Back": film({ collection: starWars }),
+      Spaceballs: film({ collection: { id: 99, name: "Spaceballs Collection" } }),
+    });
+
+    expect(ranking.map((work) => work.title)).toStrictEqual([
+      "Star Wars",
+      "The Empire Strikes Back",
+      "Indiana Jones",
+      "Spaceballs",
+    ]);
+    expect(cluesOf(ranking, "The Empire Strikes Back")).toStrictEqual([
+      { text: "Same series: Star Wars Collection", shared: true },
+    ]);
+    expect(cluesOf(ranking, "Spaceballs")).toStrictEqual([]);
+  });
 });

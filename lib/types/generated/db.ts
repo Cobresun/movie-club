@@ -170,6 +170,8 @@ export interface MovieDetails {
   adult: boolean | null;
   backdrop_path: string | null;
   budget: Int8 | null;
+  collection_id: Int8 | null;
+  collection_name: string | null;
   external_id: string;
   homepage: string | null;
   id: Generated<Int8>;

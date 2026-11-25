@@ -5,6 +5,7 @@ import { MAJOR_CAST_SIZE, STAR_POPULARITY } from "../../../../lib/movie/majorCas
 import { WorkType } from "../../../../lib/types/generated/db";
 import { topWorkIds } from "../dailyGame";
 import { db } from "../database";
+import { collectionFromRow } from "../movieDetailsUpdater";
 import { getTMDBMostRated } from "../tmdb";
 import { type DailyGame } from "./types";
 
@@ -44,6 +45,8 @@ async function loadMovies(): Promise<PoolWork<MovieGameData>[]> {
         "daily_game_catalog.title",
         "movie_details.release_date",
         "movie_details.original_language",
+        "movie_details.collection_id",
+        "movie_details.collection_name",
       ])
       .where("daily_game_catalog.work_type", "=", WorkType.MOVIE)
       .where("movie_details.overview", "is not", null)
@@ -96,6 +99,7 @@ async function loadMovies(): Promise<PoolWork<MovieGameData>[]> {
       genres: genresById.get(row.external_id) ?? [],
       release_date: row.release_date?.toISOString(),
       original_language: row.original_language ?? undefined,
+      collection: collectionFromRow(row),
     },
   }));
 }

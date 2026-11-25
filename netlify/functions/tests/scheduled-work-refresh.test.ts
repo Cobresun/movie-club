@@ -79,6 +79,28 @@ describe("scheduled work refresh", () => {
     ]);
   });
 
+  it("caches the movie's collection and drops it once TMDB does", async () => {
+    const alice = await signIn("alice");
+    const club = await createClub(alice);
+    const collection = { id: 10, name: "Star Wars Collection" };
+    server.use(
+      http.get("https://api.themoviedb.org/3/movie/42", () =>
+        HttpResponse.json(tmdbMovie(42, { belongs_to_collection: collection })),
+      ),
+    );
+    await addWork(club, alice, { externalId: "42" });
+    await expect(metadataOf(club)).resolves.toMatchObject([{ collection }]);
+
+    server.use(
+      http.get("https://api.themoviedb.org/3/movie/42", () => HttpResponse.json(tmdbMovie(42))),
+    );
+    await run();
+
+    const [metadata] = await metadataOf(club);
+    expect(metadata).toMatchObject({ overview: "Overview for movie 42" });
+    expect(metadata).not.toHaveProperty("collection");
+  });
+
   it("replaces the cast rather than appending to it", async () => {
     const alice = await signIn("alice");
     const club = await createClub(alice);

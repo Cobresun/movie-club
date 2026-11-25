@@ -30,6 +30,7 @@ import AddObservability from "./schema/20260729_AddObservability.js";
 import RekeyAwardsCaseInsensitiveNames from "./schema/20261019_RekeyAwardsCaseInsensitiveNames.js";
 import AddDailyGame from "./schema/AddDailyGame.js";
 import AddDailyGameResult from "./schema/AddDailyGameResult.js";
+import AddMovieCollection from "./schema/AddMovieCollection.js";
 import AddTvClubType from "./schema/AddTvClubType.js";
 import AddTvDetails from "./schema/AddTvDetails.js";
 import AddTvWorkType from "./schema/AddTvWorkType.js";
@@ -100,4 +101,5 @@ export const orderedMigrations: NamedMigration[] = [
   IndexReviewAndCommentLookups,
   RekeyCredentialAccountIds,
   IndexMovieCastLookups,
+  AddMovieCollection,
 ];

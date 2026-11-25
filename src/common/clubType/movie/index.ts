@@ -117,7 +117,7 @@ export const movieClubConfig: ClubTypeConfig = {
     path: "/reelated",
     tagline: "One mystery movie a day. Every guess tells you how related it is. No account needed.",
     similarityRule:
-      "A guess ranks by its clues: a shared director counts most, then shared stars, then a shared studio (the big ones don't count), genre, language or decade, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one released nearer the answer ranks higher.",
+      "A guess ranks by its clues: a shared director counts most, then a shared series (sequels and prequels), then shared stars, then a shared studio (the big ones don't count), genre, language or decade, the rarer the more. Between guesses that share as much, each genre the guess has that the answer doesn't counts against it. When two guesses still tie, the one released nearer the answer ranks higher.",
     preview: {
       poolSize: 3000,
       guesses: [

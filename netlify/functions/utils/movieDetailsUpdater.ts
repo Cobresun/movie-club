@@ -1,7 +1,21 @@
 import { type Kysely, type Transaction } from "kysely";
 
+import { hasValue, isDefined } from "../../../lib/checks/checks.js";
 import { type DB } from "../../../lib/types/generated/db";
-import { type TMDBMovieData } from "../../../lib/types/movie";
+import { type TMDBMovieCollection, type TMDBMovieData } from "../../../lib/types/movie";
+
+/**
+ * Reads back the collection the functions below write. A row carries one only
+ * when both columns are set; the id is an INT8, so Kysely returns a string.
+ */
+export function collectionFromRow(row: {
+  collection_id: string | null;
+  collection_name: string | null;
+}): TMDBMovieCollection | undefined {
+  return isDefined(row.collection_id) && hasValue(row.collection_name)
+    ? { id: Number(row.collection_id), name: row.collection_name }
+    : undefined;
+}
 
 /**
  * Insert movie details and related data into the database
@@ -34,6 +48,8 @@ export async function insertMovieDetails(
       status: tmdbData.status,
       tagline: tmdbData.tagline,
       title: tmdbData.title,
+      collection_id: tmdbData.belongs_to_collection?.id ?? null,
+      collection_name: tmdbData.belongs_to_collection?.name ?? null,
     })
     .onConflict((oc) => oc.column("external_id").doNothing())
     .execute();
@@ -164,6 +180,8 @@ export async function updateMovieDetails(
       status: tmdbData.status,
       tagline: tmdbData.tagline,
       title: tmdbData.title,
+      collection_id: tmdbData.belongs_to_collection?.id ?? null,
+      collection_name: tmdbData.belongs_to_collection?.name ?? null,
       updated_date: new Date(),
     })
     .where("external_id", "=", externalId)
