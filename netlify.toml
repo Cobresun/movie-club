@@ -1,28 +1,31 @@
 [build]
-# Deploy-only work. Quality gates (type-check, lint, test) run in GitHub
-# Actions (.github/workflows/ci.yml) so they don't burn Netlify build minutes.
-# `migrate` keeps the target DB (prod on production, the spawned/dev DB on
-# previews) in sync and regenerates lib/types/generated/db.ts; the git diff
-# then fails the build if the committed types don't match the migrated schema
-# (GitHub Actions type-checks against the committed file, so a stale db.ts
-# would otherwise slip through). `vite build` produces the site.
-command = "npm run migrate && (git diff --exit-code -- lib/types/generated || (echo 'Generated DB types are stale: run npm run codegen and commit lib/types/generated/db.ts' && exit 1)) && vite build"
+  # Deploy-only work. Quality gates (type-check, lint, test) run in GitHub
+  # Actions (.github/workflows/ci.yml) so they don't burn Netlify build minutes.
+  # `migrate` keeps the target DB (prod on production, the spawned/dev DB on
+  # previews) in sync and regenerates lib/types/generated/db.ts; the git diff
+  # then fails the build if the committed types don't match the migrated schema
+  # (GitHub Actions type-checks against the committed file, so a stale db.ts
+  # would otherwise slip through). `vite build` produces the site.
+  command = "npm run migrate && (git diff --exit-code -- lib/types/generated || (echo 'Generated DB types are stale: run npm run codegen and commit lib/types/generated/db.ts' && exit 1)) && vite build"
 
-# Skip a preview rebuild when a push changes only non-deployed files (docs,
-# Claude config). Exit 0 = Netlify cancels the build; a non-empty diff of
-# everything-else exits non-zero and the build proceeds. Errors (e.g. missing
-# CACHED_COMMIT_REF on a first build) are treated as "build" by Netlify.
-ignore = "git diff --quiet ${CACHED_COMMIT_REF} ${COMMIT_REF} -- . ':(exclude)*.md' ':(exclude).claude/'"
-
-[[plugins]]
-package = "./netlify/plugins/preview-database"
+  # Skip a preview rebuild when a push changes only non-deployed files (docs,
+  # Claude config). Exit 0 = Netlify cancels the build; a non-empty diff of
+  # everything-else exits non-zero and the build proceeds. Errors (e.g. missing
+  # CACHED_COMMIT_REF on a first build) are treated as "build" by Netlify.
+  ignore = "git diff --quiet ${CACHED_COMMIT_REF} ${COMMIT_REF} -- . ':(exclude)*.md' ':(exclude).claude/'"
 
 [[plugins]]
-package = "./netlify/plugins/auth-config"
+  package = "./netlify/plugins/preview-database"
+
+[[plugins]]
+  package = "./netlify/plugins/auth-config"
 
 [functions]
-# Include config files in function bundles
-included_files = ["database-config.json", "auth-config.json"]
+  # Include config files in function bundles
+  included_files = [
+    "database-config.json",
+    "auth-config.json"
+  ]
 
 # Vite content-hashes everything under /assets, so a filename never changes
 # meaning and the browser can keep it for good. Without this Netlify serves
@@ -30,60 +33,60 @@ included_files = ["database-config.json", "auth-config.json"]
 # chunk. index.html is deliberately left on that default: it is what points at
 # the new hashes after a deploy.
 [[headers]]
-for = "/assets/*"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[edge_functions]]
-path = "/share/club/:clubSlug/review/:workId"
-function = "shared-review"
+  path = "/share/club/:clubSlug/review/:workId"
+  function = "shared-review"
 
 # Avatar uploads are their own function so the Cloudinary SDK and multipart
 # parser stay out of `member`, which serves the clubs list on every page load.
 # Must come before the `/api/*` rule, which would send it to `member`.
 [[redirects]]
-from = "/api/member/avatar"
-to = "/.netlify/functions/member-avatar"
-status = 200
+    from = "/api/member/avatar"
+    to = "/.netlify/functions/member-avatar"
+    status = 200
 
 # Account deletion removes the member's avatar, so it runs in its own copy of
 # BetterAuth to keep the Cloudinary SDK out of `auth`, which every session check
 # goes through. Must come before the `/api/*` rule, which would send it to `auth`.
 [[redirects]]
-from = "/api/auth/delete-user"
-to = "/.netlify/functions/account-delete"
-status = 200
+    from = "/api/auth/delete-user"
+    to = "/.netlify/functions/account-delete"
+    status = 200
 
 [[redirects]]
-from = "/api/*"
-to = "/.netlify/functions/:splat"
-status = 200
+    from = "/api/*"
+    to = "/.netlify/functions/:splat"
+    status = 200
 
 # Same-origin copies of the image hosts Wrapped cards show. A saved card is
 # drawn on a canvas, which can only read a cross-origin image whose host sends
 # CORS headers, so cardImage.ts fetches posters and avatars through these.
 # Keep the prefixes in step with IMAGE_PROXIES there.
 [[redirects]]
-from = "/image-proxy/tmdb/*"
-to = "https://image.tmdb.org/:splat"
-status = 200
+    from = "/image-proxy/tmdb/*"
+    to = "https://image.tmdb.org/:splat"
+    status = 200
 
 [[redirects]]
-from = "/image-proxy/google-books/*"
-to = "https://books.google.com/:splat"
-status = 200
+    from = "/image-proxy/google-books/*"
+    to = "https://books.google.com/:splat"
+    status = 200
 
 [[redirects]]
-from = "/image-proxy/google-avatars/*"
-to = "https://lh3.googleusercontent.com/:splat"
-status = 200
+    from = "/image-proxy/google-avatars/*"
+    to = "https://lh3.googleusercontent.com/:splat"
+    status = 200
 
 [[redirects]]
-from = "/image-proxy/cloudinary/*"
-to = "https://res.cloudinary.com/:splat"
-status = 200
+    from = "/image-proxy/cloudinary/*"
+    to = "https://res.cloudinary.com/:splat"
+    status = 200
 
 [[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
+    from = "/*"
+    to = "/index.html"
+    status = 200
