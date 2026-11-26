@@ -13,8 +13,8 @@ import { type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler } from "../member-avatar";
 import { signIn, type TestSession } from "./helpers/auth";
-import { createClub, type SeededClub } from "./helpers/factories";
-import { makeEvent, requester } from "./helpers/http";
+import { createClub, type SeededClub, uploadAvatar } from "./helpers/factories";
+import { requester } from "./helpers/http";
 import { CLOUDINARY_DESTROY, CLOUDINARY_UPLOAD, failOnRequest, server } from "./setup/externalApis";
 
 const api = requester(handler);
@@ -22,38 +22,6 @@ const clubApi = requester(clubHandler);
 
 const AVATAR_URL = "https://res.cloudinary.com/test-cloud/image/upload/avatar.jpg";
 const REPLACEMENT_AVATAR_URL = "https://res.cloudinary.com/test-cloud/image/upload/second.jpg";
-
-/** A minimal multipart/form-data body carrying one file field. */
-function multipartAvatar(fields: { file?: string; note?: string } = { file: "avatar.png" }) {
-  const boundary = "----movieclubtestboundary";
-  const parts = [`--${boundary}`];
-  if (fields.file !== undefined) {
-    parts.push(
-      `Content-Disposition: form-data; name="file"; filename="${fields.file}"`,
-      "Content-Type: image/png",
-      "",
-      "pretend-png-bytes",
-    );
-  } else {
-    parts.push('Content-Disposition: form-data; name="note"', "", fields.note ?? "hi");
-  }
-  parts.push(`--${boundary}--`, "");
-
-  return { boundary, body: parts.join("\r\n") };
-}
-
-function uploadAvatar(session: TestSession, fields?: Parameters<typeof multipartAvatar>[0]) {
-  const { boundary, body } = multipartAvatar(fields);
-  return api.send(
-    makeEvent({
-      path: "/api/member/avatar",
-      httpMethod: "POST",
-      body,
-      as: session,
-      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
-    }),
-  );
-}
 
 /** The profile a club sees for `session` — how a client observes the avatar. */
 async function profileIn(club: SeededClub, session: TestSession) {

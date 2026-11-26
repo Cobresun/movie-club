@@ -67,6 +67,8 @@
         </h2>
         <ChangePasswordForm />
       </section>
+
+      <DeleteAccountSection />
     </div>
 
     <input
@@ -94,6 +96,7 @@ import { useToast } from "vue-toastification";
 import { hasValue, isDefined } from "../../../../lib/checks/checks.js";
 import ChangePasswordForm from "../../auth/components/ChangePasswordForm.vue";
 import { decodePhoto } from "../avatarImage";
+import DeleteAccountSection from "../components/DeleteAccountSection.vue";
 import PhotoCropModal from "../components/PhotoCropModal.vue";
 import { useDeleteAvatar, useUpdateAvatar, useUpdateName, useUser } from "@/service/useUser";
 

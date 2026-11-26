@@ -68,7 +68,7 @@ The data model is in `database.md`.
 
 ## Auth
 
-`utils/auth.ts` is the BetterAuth config behind `/api/auth/*`; see the `better-auth-best-practices` skill. Every other function checks sessions through `utils/session.ts` (`sessionUserId`, `loggedIn`, `secured`, `siteAdmin`), a second instance without hashing, OAuth, email or signup hooks, so their cold starts don't load them. What both must agree on to read each other's cookies (base URL, database, session and cookie cache, ID strategy) lives in `utils/authOptions.ts`.
+`utils/auth.ts` is the BetterAuth config behind `/api/auth/*`; see the `better-auth-best-practices` skill. `/api/auth/delete-user` alone is redirected to `account-delete.ts`, a copy of that config with account deletion enabled, whose hook removes the avatar without loading Cloudinary into `auth`. Enable a BetterAuth endpoint with a heavy hook the same way, never in `auth.ts`. Every other function checks sessions through `utils/session.ts` (`sessionUserId`, `loggedIn`, `secured`, `siteAdmin`), a second instance without hashing, OAuth, email or signup hooks, so their cold starts don't load them. What both must agree on to read each other's cookies (base URL, database, session and cookie cache, ID strategy) lives in `utils/authOptions.ts`.
 
 - **Set-Cookie:** `Headers.forEach` folds repeated `Set-Cookie` values into one malformed header. Use `getSetCookie()` and return them through `multiValueHeaders`.
 - **Only the auth endpoint renews sessions.** `loggedIn` reads with `disableRefresh`, because `getSession` called from a handler has nowhere to send a Set-Cookie.

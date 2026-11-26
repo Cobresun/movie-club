@@ -49,6 +49,14 @@
     to = "/.netlify/functions/member-avatar"
     status = 200
 
+# Account deletion removes the member's avatar, so it runs in its own copy of
+# BetterAuth to keep the Cloudinary SDK out of `auth`, which every session check
+# goes through. Must come before the `/api/*` rule, which would send it to `auth`.
+[[redirects]]
+    from = "/api/auth/delete-user"
+    to = "/.netlify/functions/account-delete"
+    status = 200
+
 [[redirects]]
     from = "/api/*"
     to = "/.netlify/functions/:splat"

@@ -7,40 +7,20 @@
 import { type ClubInviteDetails, type ClubPreview, type Member } from "../../../lib/types/club";
 import { handler as clubHandler } from "../club/index";
 import { handler as memberHandler } from "../member";
-import { handler as memberAvatarHandler } from "../member-avatar";
-import { signIn, type TestSession } from "./helpers/auth";
-import { createClub, createInvite, expireInvite, joinClub } from "./helpers/factories";
-import { makeEvent, requester } from "./helpers/http";
+import { signIn } from "./helpers/auth";
+import {
+  createClub,
+  createInvite,
+  expireInvite,
+  joinClub,
+  uploadAvatar,
+} from "./helpers/factories";
+import { requester } from "./helpers/http";
 
 const api = requester(clubHandler);
 const memberApi = requester(memberHandler);
-const avatarApi = requester(memberAvatarHandler);
 
 const membersOf = (slug: string) => api.get<Member[]>(`/api/club/${slug}/members`);
-
-/** Upload an avatar as `session`, so a test can assert the image comes back. */
-function uploadAvatar(session: TestSession) {
-  const boundary = "----movieclubtestboundary";
-  const body = [
-    `--${boundary}`,
-    'Content-Disposition: form-data; name="file"; filename="avatar.png"',
-    "Content-Type: image/png",
-    "",
-    "pretend-png-bytes",
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-
-  return avatarApi.send(
-    makeEvent({
-      path: "/api/member/avatar",
-      httpMethod: "POST",
-      body,
-      as: session,
-      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
-    }),
-  );
-}
 
 describe("GET /api/club/:clubSlug/members", () => {
   it("returns every member with their profile and role", async () => {

@@ -4,9 +4,10 @@ import { type ClubPreview } from "../../../../lib/types/club";
 import { ClubType, WorkType } from "../../../../lib/types/generated/db";
 import { type ClubListSummary, type DetailedWorkListItem } from "../../../../lib/types/lists";
 import { handler as clubHandler } from "../../club/index";
+import { handler as memberAvatarHandler } from "../../member-avatar";
 import { db } from "../../utils/database";
 import { type TestSession } from "./auth";
-import { requester } from "./http";
+import { makeEvent, requester } from "./http";
 
 /**
  * Arrange-phase seeding for the integration suite.
@@ -21,6 +22,7 @@ import { requester } from "./http";
  */
 
 const api = requester(clubHandler);
+const avatarApi = requester(memberAvatarHandler);
 
 let counter = 0;
 const unique = () => `${Date.now().toString(36)}-${(counter += 1)}`;
@@ -114,6 +116,42 @@ export async function joinClub(club: SeededClub, session: TestSession, inviter: 
 export async function leaveClub(club: { slug: string }, session: TestSession) {
   const left = await api.delete(`/api/club/${club.slug}/members/self`, { as: session });
   assertOk(`${session.email} leaving "${club.slug}"`, left);
+}
+
+/** A minimal multipart/form-data body carrying one file field, or a text field instead. */
+function multipartAvatar(fields: { file?: string; note?: string }) {
+  const boundary = "----movieclubtestboundary";
+  const parts = [`--${boundary}`];
+  if (fields.file !== undefined) {
+    parts.push(
+      `Content-Disposition: form-data; name="file"; filename="${fields.file}"`,
+      "Content-Type: image/png",
+      "",
+      "pretend-png-bytes",
+    );
+  } else {
+    parts.push('Content-Disposition: form-data; name="note"', "", fields.note ?? "hi");
+  }
+  parts.push(`--${boundary}--`, "");
+
+  return { boundary, body: parts.join("\r\n") };
+}
+
+/** Upload an avatar as `session`. The response is returned unchecked. */
+export function uploadAvatar(
+  session: TestSession,
+  fields: Parameters<typeof multipartAvatar>[0] = { file: "avatar.png" },
+) {
+  const { boundary, body } = multipartAvatar(fields);
+  return avatarApi.send(
+    makeEvent({
+      path: "/api/member/avatar",
+      httpMethod: "POST",
+      body,
+      as: session,
+      headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    }),
+  );
 }
 
 /** Add a list beyond the club's default one. */

@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { oAuthProxy } from "better-auth/plugins";
 import { existsSync, readFileSync } from "fs";
 import path from "path";
@@ -72,7 +72,7 @@ function getTrustedOrigins(): string[] {
  */
 const deployURL = authConfig?.siteURL ?? process.env.BETTER_AUTH_URL;
 
-export const auth = betterAuth({
+export const authOptions = {
   plugins: [
     oAuthProxy({
       // productionURL defaults to BETTER_AUTH_URL env var
@@ -130,4 +130,6 @@ export const auth = betterAuth({
     },
   },
   ...sharedAuthOptions,
-});
+} satisfies BetterAuthOptions;
+
+export const auth = betterAuth(authOptions);
