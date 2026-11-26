@@ -213,8 +213,16 @@ export const useAuthStore = defineStore("auth", () => {
       },
     });
 
+    await leaveEndedSession();
+  };
+
+  /**
+   * Follows a request that ended the session (signing out, deleting the
+   * account) off member pages, once the session reflects it.
+   */
+  const leaveEndedSession = async () => {
     // Wait for BetterAuth's reactive session to clear
-    // (internally uses setTimeout + refetch after signOut)
+    // (internally uses setTimeout + refetch after the request)
     if (isLoggedIn.value) {
       await watchUntil(isLoggedIn, (loggedIn) => !loggedIn);
     }
@@ -328,6 +336,7 @@ export const useAuthStore = defineStore("auth", () => {
     signUp,
     closeAuthModal,
     logout,
+    leaveEndedSession,
     refreshSession,
 
     request,

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed, type Ref } from "vue";
 
+import { isDefined } from "../../lib/checks/checks.js";
 import { type ClubPreview, type User } from "../../lib/types/club";
 import { type MemberScoredWork } from "../../lib/types/lists";
+import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores/auth";
 
 export function useUser() {
@@ -91,5 +93,46 @@ export function useUpdateName() {
   return useMutation({
     mutationFn: async (name: string) => auth.request.put(`/api/member/name`, { name }),
     onSettled: refreshProfile,
+  });
+}
+
+/** Whether the member signs in with a password, which deleting the account asks for. */
+export function useHasPassword({ enabled }: { enabled: Readonly<Ref<boolean>> }) {
+  const auth = useAuthStore();
+  const isEnabled = computed(() => auth.isLoggedIn && enabled.value);
+
+  return useQuery({
+    queryKey: ["user", "accounts"],
+    enabled: isEnabled,
+    queryFn: async () => {
+      const { data, error } = await authClient.listAccounts();
+      if (error) throw new Error(error.message);
+      return data.some((account) => account.providerId === "credential");
+    },
+  });
+}
+
+const DELETE_ACCOUNT_ERRORS: Partial<Record<string, string>> = {
+  INVALID_PASSWORD: "That password is incorrect.",
+  SESSION_EXPIRED: "For your security, sign out and back in, then delete your account.",
+};
+
+/**
+ * Deletes the signed-in member's account. Without a password BetterAuth
+ * accepts only a session signed in within the last day.
+ */
+export function useDeleteAccount() {
+  const auth = useAuthStore();
+  return useMutation({
+    mutationFn: async (password?: string) => {
+      const { error } = await authClient.deleteUser(isDefined(password) ? { password } : {});
+      if (error) {
+        throw new Error(
+          (isDefined(error.code) ? DELETE_ACCOUNT_ERRORS[error.code] : undefined) ??
+            "Couldn't delete your account. Please try again.",
+        );
+      }
+    },
+    onSuccess: () => auth.leaveEndedSession(),
   });
 }

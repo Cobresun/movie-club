@@ -6,6 +6,7 @@ import ProfileView from "../views/ProfileView.vue";
 import { mockCanvas } from "@/mocks/canvas";
 import memberData from "@/mocks/data/member.json";
 import { server } from "@/mocks/server";
+import { useAuthStore } from "@/stores/auth";
 import { logIn, render } from "@/tests/utils";
 
 // vue-toastification renders inside a <transition-group>, whose default VTU
@@ -176,6 +177,88 @@ describe("ProfileView", () => {
       await user.click(await screen.findByRole("button", { name: "Save photo" }));
 
       expect(await screen.findAllByText("Couldn't update your photo")).not.toHaveLength(0);
+    });
+  });
+
+  describe("deleting the account", () => {
+    const accounts = (...providerIds: string[]) =>
+      http.get("/api/auth/list-accounts", () =>
+        HttpResponse.json(
+          providerIds.map((providerId, index) => ({
+            id: String(index),
+            providerId,
+            accountId: memberData.id,
+            userId: memberData.id,
+            scopes: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })),
+        ),
+      );
+
+    const refuseWith = (code: string) =>
+      http.post("/api/auth/delete-user", () =>
+        HttpResponse.json({ code, message: code }, { status: 400 }),
+      );
+
+    it("deletes the account once the password is entered, then leaves the page", async () => {
+      server.use(
+        accounts("credential"),
+        http.post("/api/auth/delete-user", () =>
+          HttpResponse.json({ success: true, message: "User deleted" }),
+        ),
+      );
+      const { user, pinia } = renderProfile();
+
+      await user.click(screen.getByRole("button", { name: "Delete account" }));
+      await user.type(await screen.findByLabelText("Password"), "hunter22");
+      await user.click(screen.getByRole("button", { name: "Delete my account" }));
+
+      await waitFor(() => {
+        expect(useAuthStore(pinia).leaveEndedSession).toHaveBeenCalledWith();
+      });
+    });
+
+    it("keeps the account and says so when the password is wrong", async () => {
+      server.use(accounts("credential"), refuseWith("INVALID_PASSWORD"));
+      const { user, pinia } = renderProfile();
+
+      await user.click(screen.getByRole("button", { name: "Delete account" }));
+      await user.type(await screen.findByLabelText("Password"), "wrong");
+      await user.click(screen.getByRole("button", { name: "Delete my account" }));
+
+      expect(await screen.findByText("That password is incorrect.")).toBeInTheDocument();
+      expect(useAuthStore(pinia).leaveEndedSession).not.toHaveBeenCalled();
+    });
+
+    it("asks a member without a password to sign in again when their session is old", async () => {
+      server.use(accounts("google"), refuseWith("SESSION_EXPIRED"));
+      const { user } = renderProfile();
+
+      await user.click(screen.getByRole("button", { name: "Delete account" }));
+      const confirm = screen.getByRole("button", { name: "Delete my account" });
+      await waitFor(() => {
+        expect(confirm).toBeEnabled();
+      });
+      expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+      await user.click(confirm);
+
+      expect(
+        await screen.findByText(
+          "For your security, sign out and back in, then delete your account.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("puts the button back when the member cancels", async () => {
+      server.use(accounts("credential"));
+      const { user } = renderProfile();
+
+      await user.click(screen.getByRole("button", { name: "Delete account" }));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(screen.getByRole("button", { name: "Delete account" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Delete my account" })).not.toBeInTheDocument();
     });
   });
 });

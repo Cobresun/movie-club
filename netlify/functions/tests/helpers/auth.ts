@@ -94,32 +94,19 @@ async function signUp(email: string, name: string, headers: Record<string, strin
   await confirmEmailAddress(email);
 }
 
-/**
- * Sign a fixture user in, creating and verifying the account on first use. The
- * session is cached, so repeated calls within a file are free, until it has
- * expired by the clock the calling test runs on.
- */
-export async function signIn(who: FixtureUser): Promise<TestSession> {
-  const cached = sessions.get(who);
-  if (cached && cached.expiresAt.getTime() > Date.now()) return cached.session;
-
-  const { email, name } = FIXTURE_USERS[who];
-
-  let response = await auth.post("/api/auth/sign-in/email", {
+async function signInRequest(email: string) {
+  return auth.post("/api/auth/sign-in/email", {
     body: { email, password: PASSWORD },
     headers: AUTH_HEADERS,
   });
+}
 
-  // 403 means the account exists but is unverified, 401 that it does not exist
-  // at all; either way this is the first time this run has needed it.
-  if (response.statusCode >= 400) {
-    await signUp(email, name);
-    response = await auth.post("/api/auth/sign-in/email", {
-      body: { email, password: PASSWORD },
-      headers: AUTH_HEADERS,
-    });
-  }
-
+/** Turn a successful sign-in response into a session tests can send. */
+async function toTestSession(
+  response: Awaited<ReturnType<typeof signInRequest>>,
+  email: string,
+  name: string,
+) {
   if (response.statusCode >= 400) {
     throw new Error(`Signing in ${email} failed: ${response.statusCode} ${response.raw ?? ""}`);
   }
@@ -135,9 +122,43 @@ export async function signIn(who: FixtureUser): Promise<TestSession> {
     throw new Error(`Signed in ${email} but the session cookie did not resolve to a user`);
   }
 
-  const testSession: TestSession = { userId: resolved.body.user.id, email, name, cookie };
-  sessions.set(who, { session: testSession, expiresAt: new Date(resolved.body.session.expiresAt) });
-  return testSession;
+  const session: TestSession = { userId: resolved.body.user.id, email, name, cookie };
+  return { session, expiresAt: new Date(resolved.body.session.expiresAt) };
+}
+
+/**
+ * Sign a fixture user in, creating and verifying the account on first use. The
+ * session is cached, so repeated calls within a file are free, until it has
+ * expired by the clock the calling test runs on.
+ */
+export async function signIn(who: FixtureUser): Promise<TestSession> {
+  const cached = sessions.get(who);
+  if (cached && cached.expiresAt.getTime() > Date.now()) return cached.session;
+
+  const { email, name } = FIXTURE_USERS[who];
+
+  let response = await signInRequest(email);
+
+  // 403 means the account exists but is unverified, 401 that it does not exist
+  // at all; either way this is the first time this run has needed it.
+  if (response.statusCode >= 400) {
+    await signUp(email, name);
+    response = await signInRequest(email);
+  }
+
+  const signedIn = await toTestSession(response, email, name);
+  sessions.set(who, signedIn);
+  return signedIn.session;
+}
+
+/**
+ * Sign up, verify and sign in an address outside the fixture set, for a test
+ * that does something to the account no other test may see, like deleting it.
+ * The password is `FIXTURE_PASSWORD`.
+ */
+export async function signInNewUser(email: string, name = "New User"): Promise<TestSession> {
+  await signUpNewUser(email, name);
+  return (await toTestSession(await signInRequest(email), email, name)).session;
 }
 
 /**
